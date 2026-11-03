@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct VerityDocumentAssistantSheet: View {
     let file: VerityFile
@@ -43,8 +44,10 @@ struct VerityDocumentAssistantSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 12) {
-                        SettingsLink {
-                            Label("Open Verity Settings", systemImage: "gearshape")
+                        Button {
+                            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                        } label: {
+                            Label("Open VERITY Settings", systemImage: "gearshape")
                         }
                         .buttonStyle(.borderedProminent)
 
