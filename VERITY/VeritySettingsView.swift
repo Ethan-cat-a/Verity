@@ -23,7 +23,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.2"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.0"
     }
 
     var body: some View {
@@ -121,7 +121,7 @@ struct VeritySettingsView: View {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Verity character voice").font(.system(size: 13, weight: .semibold))
-                        Text("Voice design is being refined toward a warm, grounded, natural delivery").font(.caption).foregroundStyle(.secondary)
+                        Text("Warm, natural male voice with calmer conversational delivery").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "key")
@@ -132,9 +132,9 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
-                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original expressive male character voice.")
+                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original natural male character voice.")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("Speech engine: Eleven v4 · expressive delivery with phrase-by-phrase pre-generation.")
+                Text("Speech engine: Eleven v4 · neutral delivery with phrase-by-phrase pre-generation.")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Preview selected voice") {
                     Task { await previewSelectedVoice() }
