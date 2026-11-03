@@ -1,6 +1,6 @@
-# VERITY 0.5.0 — your chaotic desktop companion
+# VERITY 0.6.0 — your chaotic desktop companion
 
-VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. NOVA V8 powers its intelligence.
+VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. Verity has its own distinct character and personality.
 
 ## Download VERITY — no Xcode required
 
@@ -42,7 +42,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Press **Talk with Verity** on the floating character.
 - Allow microphone and speech recognition access when macOS asks.
 - Tap the microphone, speak naturally, then tap it again to finish.
-- NOVA V8 creates the reply; ElevenLabs speaks it in Verity's selected Callie voice.
+- Verity responds through its connected intelligence service and speaks in its selected character voice.
 
 The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses; ordinary questions are sent to NOVA V8.
 
@@ -53,14 +53,6 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
 The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Until a key is configured, Verity uses the Mac's built-in speech voice.
-
-## NOVA V8 connection
-
-VERITY uses the existing NOVA V8 service:
-
-https://nova-v8.vercel.app/api/chat
-
-The app sends conversation messages to NOVA V8 and keeps provider credentials on the server. No NOVA API key is embedded in VERITY.
 
 ## Trust Center and screen understanding (0.5.0)
 
