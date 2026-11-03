@@ -1,0 +1,259 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* VerityApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* VerityApp.swift */; };
+		A10000000000000000000002 /* VerityModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* VerityModel.swift */; };
+		A10000000000000000000003 /* VerityPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* VerityPanelController.swift */; };
+		A10000000000000000000004 /* FileDropHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* FileDropHandler.swift */; };
+		A10000000000000000000005 /* VerityCharacterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* VerityCharacterView.swift */; };
+		A10000000000000000000006 /* FileInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* FileInspectorView.swift */; };
+		A10000000000000000000007 /* VerityKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* VerityKeychain.swift */; };
+		A10000000000000000000008 /* VerityDocumentAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* VerityDocumentAI.swift */; };
+		A10000000000000000000009 /* DocumentAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* DocumentAssistantView.swift */; };
+		A1000000000000000000000A /* VeritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* VeritySettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* VerityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* VerityModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityModel.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* VerityPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityPanelController.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* FileDropHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDropHandler.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* VerityCharacterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityCharacterView.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* FileInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileInspectorView.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B10000000000000000000008 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000009 /* VERITY.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VERITY.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000010 /* VerityKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityKeychain.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* VerityDocumentAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityDocumentAI.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* DocumentAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentAssistantView.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* VeritySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeritySettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000002 /* VERITY */,
+				B10000000000000000000008 /* README.md */,
+				D10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000002 /* VERITY */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* VerityApp.swift */,
+				B10000000000000000000002 /* VerityModel.swift */,
+				B10000000000000000000003 /* VerityPanelController.swift */,
+				B10000000000000000000004 /* FileDropHandler.swift */,
+				B10000000000000000000005 /* VerityCharacterView.swift */,
+				B10000000000000000000006 /* FileInspectorView.swift */,
+				B10000000000000000000010 /* VerityKeychain.swift */,
+				B10000000000000000000011 /* VerityDocumentAI.swift */,
+				B10000000000000000000012 /* DocumentAssistantView.swift */,
+				B10000000000000000000013 /* VeritySettingsView.swift */,
+				B10000000000000000000007 /* Info.plist */,
+			);
+			path = VERITY;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000009 /* VERITY.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* VERITY */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000002 /* Build configuration list for PBXNativeTarget "VERITY" */;
+			buildPhases = (
+				C10000000000000000000002 /* Sources */,
+				C10000000000000000000001 /* Frameworks */,
+				C10000000000000000000003 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = VERITY;
+			productName = VERITY;
+			productReference = B10000000000000000000009 /* VERITY.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E10000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				LastSwiftUpdateCheck = 1600;
+				TargetAttributes = {
+					E10000000000000000000001 = {CreatedOnToolsVersion = 16.0; };
+				};
+			};
+			buildConfigurationList = F10000000000000000000001 /* Build configuration list for PBXProject "VERITY" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (E10000000000000000000001 /* VERITY */);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* VerityApp.swift in Sources */,
+				A10000000000000000000002 /* VerityModel.swift in Sources */,
+				A10000000000000000000003 /* VerityPanelController.swift in Sources */,
+				A10000000000000000000004 /* FileDropHandler.swift in Sources */,
+				A10000000000000000000005 /* VerityCharacterView.swift in Sources */,
+				A10000000000000000000006 /* FileInspectorView.swift in Sources */,
+				A10000000000000000000007 /* VerityKeychain.swift in Sources */,
+				A10000000000000000000008 /* VerityDocumentAI.swift in Sources */,
+				A10000000000000000000009 /* DocumentAssistantView.swift in Sources */,
+				A1000000000000000000000A /* VeritySettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		G10000000000000000000001 /* Debug project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		G10000000000000000000002 /* Release project */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		G10000000000000000000003 /* Debug target */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VERITY/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		G10000000000000000000004 /* Release target */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VERITY/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000001 /* Build configuration list for PBXProject "VERITY" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10000000000000000000001 /* Debug project */,
+				G10000000000000000000002 /* Release project */,
+			);
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000002 /* Build configuration list for PBXNativeTarget "VERITY" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10000000000000000000003 /* Debug target */,
+				G10000000000000000000004 /* Release target */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E10000000000000000000002 /* Project object */;
+}
