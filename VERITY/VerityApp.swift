@@ -28,19 +28,15 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 struct VerityMenuBarView: View {
-    @ObservedObject private var model = VerityModel.shared
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
-    @AppStorage(VerityPrivacyPreferences.blindModeEnabledKey) private var blindModeEnabled = false
-    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                VerityFace(size: 34, mood: .happy)
+                VerityFace(size: 38, mood: .happy)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("VERITY")
-                        .font(.headline)
-                    Text("Your personal helper friend")
+                    Text("VERITY").font(.headline)
+                    Text("The know-it-all ball.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -51,35 +47,20 @@ struct VerityMenuBarView: View {
             Button {
                 VerityPanelController.shared.show()
             } label: {
-                Label("Open VERITY · ⌘⇧V", systemImage: "eye")
+                Label("Ask Verity · ⌘⇧V", systemImage: "bubble.left.and.bubble.right")
             }
             .keyboardShortcut("v", modifiers: [.command, .shift])
-
-            Toggle("Blind Mode · pause screen reading", isOn: $blindModeEnabled)
-            Toggle("Quiet presence", isOn: $quietPresenceEnabled)
-
-            Button {
-                VerityPanelController.shared.hide()
-            } label: {
-                Label("Hide Verity window", systemImage: "eye.slash")
-            }
 
             Button {
                 VerityPanelController.shared.showPetAgain()
             } label: {
-                Label("Show desktop helper", systemImage: "pawprint")
+                Label("Show desktop ball", systemImage: "face.smiling")
             }
 
             Button {
                 VerityPanelController.shared.hidePet()
             } label: {
-                Label("Hide desktop helper", systemImage: "eye.slash")
-            }
-
-            Button {
-                VerityFileActions.openVault()
-            } label: {
-                Label("Open Verity Vault", systemImage: "shippingbox")
+                Label("Hide desktop ball", systemImage: "eye.slash")
             }
 
             Button {
@@ -88,12 +69,14 @@ struct VerityMenuBarView: View {
                 Label("Settings…", systemImage: "gearshape")
             }
 
+            Divider()
+
             if updateChecker.updateAvailable {
                 Button {
                     Task { await updateChecker.installAvailableUpdate() }
                 } label: {
                     Label(
-                        updateChecker.isInstalling ? "Installing VERITY…" : "Update VERITY · \(updateChecker.latestVersion)",
+                        updateChecker.isInstalling ? "Installing…" : "Update VERITY · \(updateChecker.latestVersion)",
                         systemImage: "arrow.down.circle.fill"
                     )
                 }
@@ -102,19 +85,10 @@ struct VerityMenuBarView: View {
                 Button {
                     Task { await updateChecker.checkNow() }
                 } label: {
-                    Label(updateChecker.isChecking ? "Checking for updates…" : "Check for updates…", systemImage: "arrow.clockwise")
+                    Label(updateChecker.isChecking ? "Checking…" : "Check for updates", systemImage: "arrow.clockwise")
                 }
                 .disabled(updateChecker.isChecking)
             }
-
-            if let file = model.lastEatenFileName {
-                Text("Last fed: \(file)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Divider()
 
             Button("Quit VERITY") {
                 NSApplication.shared.terminate(nil)
