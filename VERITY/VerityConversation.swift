@@ -387,7 +387,7 @@ final class VerityConversationModel: ObservableObject {
             "Hands off. I have a job to do.",
             "Please interact with the interface like a civilized person."
         ]
-        let line = lines.randomElement() ?? "HEY. RUDE."
+        let line = lines.randomElement() ?? "Unnecessary. I was perfectly positioned."
         VerityModel.shared.setStatus(line)
         startSpeaking(line, reaction: .angry)
     }
