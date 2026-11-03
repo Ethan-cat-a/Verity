@@ -1,16 +1,19 @@
-# VERITY 0.4.0 — your chaotic desktop companion
+# VERITY 0.4.1 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, an unnervingly wide toothy grin, and a collection of expressive reactions. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-**[Download VERITY 0.4.0 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.0-macOS.dmg)**
+**[Download VERITY 0.4.1 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.1-macOS.dmg)**
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
-3. Eject the disk image and launch VERITY from Applications.
+3. Eject the disk image.
+4. Open Terminal and run this one-time command to clear the quarantine flag on this self-built app:
+   `xattr -dr com.apple.quarantine /Applications/VERITY.app`
+5. Launch VERITY from Applications.
 
-The installer includes the app icon and does not require Xcode, Swift, a compiler, or a development environment. The app is currently unsigned and not notarized, so macOS may show a first-launch security warning. Only open it when you trust the download.
+The app bundle is ad-hoc signed and verified during packaging, but it is not signed with an Apple Developer ID certificate and is not notarized. macOS Gatekeeper may therefore block it until you approve this specific build. The command above removes the download quarantine flag only from the installed VERITY app; it does not disable Gatekeeper system-wide. Only run it for a copy you downloaded from this official repository.
 
 [View all VERITY releases](https://github.com/Ethan-cat-a/Verity/releases).
 

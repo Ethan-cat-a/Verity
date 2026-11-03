@@ -28,6 +28,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Ad-hoc sign and verify the app bundle
+        run: |
+          APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
+          # Ad-hoc signing gives the bundle a verifiable code signature; it is
+          # not a replacement for a Developer ID certificate or notarization.
+          codesign --force --deep --sign - --timestamp=none "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
       - name: Generate the VERITY app icon
         run: |
           APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
