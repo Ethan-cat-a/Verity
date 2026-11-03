@@ -1,53 +1,67 @@
 # VERITY 0.2.0 — macOS desktop companion
 
-VERITY is a native macOS menu-bar companion built around a bright yellow spherical smiley-face helper. This repository contains an unofficial fan-made desktop project; it is not affiliated with or endorsed by any rights holder. The character artwork is a hand-drawn SwiftUI interpretation.
+VERITY is a native macOS desktop companion built around a bright yellow spherical smiley character. It lives on your desktop, accepts files by drag and drop, and uses **NOVA V8** as its AI brain.
 
-## Open in Xcode
+## Download VERITY
 
-1. Clone or download this repository.
-2. Open `VERITY.xcodeproj` in Xcode.
-3. Select the **VERITY** scheme and **My Mac** as the run destination.
-4. Press Command-R. VERITY appears near the top-right of the desktop, with a smiley control in the menu bar.
+**[Download the latest source package (.zip)](https://github.com/Ethan-cat-a/Verity/archive/refs/heads/main.zip)**
 
-The project targets macOS 13.0 or later and has no external package dependencies.
+To download a ready-built Mac app, open the **[VERITY macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**, select the latest successful run, then download its **VERITY-macOS** artifact from the Artifacts section. The build is an unsigned development build.
 
-## Included in 0.2.0
+## Install from the source ZIP
 
-- Floating yellow spherical Verity character with idle animation and drag-and-drop file interaction.
-- File preview and safe-copy actions, with originals kept unless the user explicitly chooses Trash.
-- Document assistant actions: summarize, extract key points, explain simply, and ask custom questions.
-- OpenAI Responses API integration for supported document files.
-- API key stored in macOS Keychain.
-- Explicit confirmation before a document is sent to OpenAI; dropping a file alone does not upload it.
+1. Download the source ZIP using the link above.
+2. Double-click the ZIP to extract it.
+3. Open the extracted **VERITY** folder.
+4. Double-click **VERITY.xcodeproj** to open it in Xcode.
+5. In Xcode, choose the **VERITY** scheme and **My Mac** as the run destination.
+6. Press **Command-R** to build and launch VERITY.
+7. The floating yellow character appears on your desktop. You can also open it from the smiley icon in the menu bar.
 
-## Configure document understanding
+Requires macOS 13 or later and Xcode 15 or later. There are no third-party Swift package dependencies.
 
-1. Run VERITY in Xcode.
-2. Open the menu-bar control and choose Settings.
-3. Add an OpenAI API key. VERITY stores it in macOS Keychain.
-4. Choose a supported model in Settings.
-5. Drop a supported document onto Verity, choose Understand with Verity, then select an action or ask a question.
-6. Confirm the upload before the file is transmitted to the OpenAI Responses API.
+## Install the prebuilt app artifact
 
-API usage is billed separately by OpenAI and is not included with a ChatGPT subscription. Manage API keys at https://platform.openai.com/api-keys.
+1. Open the [macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml).
+2. Select the newest run marked **Success**.
+3. Download the **VERITY-macOS** artifact ZIP near the bottom of the run page.
+4. Double-click the downloaded ZIP to extract **VERITY.app**.
+5. Drag **VERITY.app** into your Applications folder and launch it.
 
-## Supported document inputs
+This is an unsigned development build, not a notarized public release. macOS may ask you to confirm that you want to open an app downloaded from the internet. Only continue when you trust the source.
 
-PDF, DOC, DOCX, RTF, ODT, PPT, PPTX, XLS, XLSX, CSV, TSV, TXT, Markdown, JSON, HTML, XML, and selected source-code formats. Files must be smaller than 50 MB per request. PDF input can include page images as well as extracted text. Non-PDF office documents are parsed as text by the API; embedded images and charts may not be interpreted.
+## What's included in 0.2.0
 
-## File safety and privacy
+- Floating yellow smiley character with an idle animation.
+- Drag-and-drop file handling and a file inspector.
+- Local text preview for supported formats.
+- Document summaries, key-point extraction, simple explanations, and custom document questions.
+- Local file text extraction followed by NOVA V8 analysis.
+- A Verity Vault that safely copies files without removing the originals.
+- Explicit confirmation before extracted document text is sent to NOVA V8.
 
-- VERITY does not permanently delete files.
-- Keep a copy in Verity Vault copies the original into the user's Documents folder.
-- Move to Trash requires confirmation.
-- Document analysis requires explicit confirmation before transmitting the selected document to OpenAI.
-- The API key is stored in Keychain, not source code or UserDefaults.
-- Responses requests set store to false; the app does not persist document contents or AI responses to disk.
+## NOVA V8 connection
 
-## Current limitations
+VERITY is wired to the existing NOVA V8 service:
 
-This is an early development build. Voice, OCR for scanned images, autonomous Mac actions, folder automation, and a full conversational desktop agent are not included yet. Users must provide their own OpenAI API key. This is an unsigned local development prototype and has not been compiled in this Linux environment because Xcode and the macOS SDK are unavailable here. App Sandbox is disabled in this prototype; review sandbox entitlements, signing, and notarization before distribution.
+https://nova-v8.vercel.app/api/chat
+
+The app uses the same **messages** request contract as NOVA Copilot. It checks the service's health endpoint on launch and sends document questions through the NOVA V8 chat API. No NOVA API key is embedded in the app; provider credentials remain on the server.
+
+To check the connection, open the menu-bar smiley → **Settings** → **Test connection**. When the status says **NOVA V8 connected**, Verity's document assistant is ready.
+
+## Document privacy and supported formats
+
+VERITY extracts text on your Mac before it contacts NOVA V8. Dropping a file does not send it anywhere. The app asks for confirmation before sending the extracted text and your question to the NOVA V8 service. The original file itself is not uploaded as an attachment.
+
+Current text extraction supports PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF files through macOS **textutil**. The extracted text is capped at 48,000 characters and files are limited to 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
+
+VERITY does not permanently delete files. Keeping a copy places it in **Documents/Verity Vault**. Moving an item to Trash requires an explicit confirmation.
+
+## Build from source
+
+Clone the repository, open **VERITY.xcodeproj** in Xcode, select the VERITY scheme and **My Mac**, then press **Command-R**.
 
 ## License and character notice
 
-Application source code is released under the MIT License. The Verity character and source-series identity are not claimed by this project and remain with their respective rights holders. This is an unofficial fan-made desktop companion.
+Application source code is released under the MIT License. The Verity character and its source-series identity are not claimed by this project and remain with their respective rights holders. This is an unofficial fan-made desktop companion and is not affiliated with or endorsed by any rights holder.
