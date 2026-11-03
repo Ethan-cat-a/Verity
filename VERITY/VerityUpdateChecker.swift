@@ -283,16 +283,29 @@ final class VerityUpdateChecker: ObservableObject {
 
         NEW_APP="$CURRENT_APP.verity-new"
         BACKUP_APP="$CURRENT_APP.verity-backup"
+        recover_previous_app() {
+            exit_code=$?
+            if [ "$exit_code" -ne 0 ]; then
+                if [ ! -e "$CURRENT_APP" ] && [ -e "$BACKUP_APP" ]; then
+                    /bin/mv "$BACKUP_APP" "$CURRENT_APP" || true
+                fi
+                if [ -e "$CURRENT_APP" ]; then
+                    /usr/bin/open -n "$CURRENT_APP" || true
+                fi
+            fi
+        }
+        trap recover_previous_app EXIT
+
         if [ -e "$NEW_APP" ]; then /bin/rm -rf "$NEW_APP"; fi
         if [ -e "$BACKUP_APP" ]; then /bin/rm -rf "$BACKUP_APP"; fi
 
         /usr/bin/ditto "$STAGED_APP" "$NEW_APP"
         /usr/bin/codesign --verify --deep --strict "$NEW_APP"
+        # The verified app is the official release asset. Remove only its
+        # download quarantine flag; never change Gatekeeper system-wide.
+        /usr/bin/xattr -dr com.apple.quarantine "$NEW_APP" 2>/dev/null || true
         /bin/mv "$CURRENT_APP" "$BACKUP_APP"
-        if ! /bin/mv "$NEW_APP" "$CURRENT_APP"; then
-            /bin/mv "$BACKUP_APP" "$CURRENT_APP"
-            exit 1
-        fi
+        /bin/mv "$NEW_APP" "$CURRENT_APP"
         /bin/rm -rf "$BACKUP_APP" || true
         echo "VERITY update installed successfully."
         /usr/bin/open -n "$CURRENT_APP"
