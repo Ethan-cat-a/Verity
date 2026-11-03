@@ -6,7 +6,7 @@ VERITY is a native macOS desktop companion with the unmistakable yellow Verity s
 
 **[Download the latest stable VERITY for macOS](https://github.com/Ethan-cat-a/Verity/releases/latest)**
 
-The 0.5.0 development build is in progress on the development branch.
+Download the latest stable build from the official GitHub Releases page above.
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
