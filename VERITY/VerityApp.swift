@@ -84,10 +84,14 @@ struct VerityMenuBarView: View {
 
             if updateChecker.updateAvailable {
                 Button {
-                    updateChecker.openDownload()
+                    Task { await updateChecker.installAvailableUpdate() }
                 } label: {
-                    Label("Update VERITY · \(updateChecker.latestVersion)", systemImage: "arrow.down.circle.fill")
+                    Label(
+                        updateChecker.isInstalling ? "Installing VERITY…" : "Update VERITY · \(updateChecker.latestVersion)",
+                        systemImage: "arrow.down.circle.fill"
+                    )
                 }
+                .disabled(updateChecker.isInstalling)
             } else {
                 Button {
                     Task { await updateChecker.checkNow() }

@@ -37,6 +37,16 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Verify release version metadata
+        run: |
+          APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
+          BUILT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist")
+          SOURCE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          test "$BUILT_VERSION" = "$SOURCE_VERSION" || {
+            echo "Release build version $BUILT_VERSION does not match VERSION file $SOURCE_VERSION"
+            exit 1
+          }
+
       - name: Generate the VERITY app icon
         run: |
           APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"

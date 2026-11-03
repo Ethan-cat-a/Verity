@@ -16,6 +16,7 @@ struct VeritySettingsView: View {
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
     @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
+    @AppStorage(VerityUpdateChecker.automaticInstallKey) private var automaticUpdateInstall = true
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
@@ -62,6 +63,9 @@ struct VeritySettingsView: View {
 
             Section("Updates") {
                 Toggle("Automatically check for updates", isOn: $automaticUpdateChecks)
+                Toggle("Automatically download and install updates", isOn: $automaticUpdateInstall)
+                Text("When enabled, VERITY downloads the latest stable release, checks its SHA-256 digest and app signature, replaces the installed app, and restarts. Auto-install requires VERITY.app to be directly inside a writable Applications folder.")
+                    .font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
                     Image(systemName: updateChecker.updateAvailable ? "arrow.down.circle.fill" : "arrow.clockwise.circle")
                         .foregroundStyle(updateChecker.updateAvailable ? .orange : .secondary)
@@ -84,13 +88,19 @@ struct VeritySettingsView: View {
                 }
                 if updateChecker.updateAvailable {
                     Button {
-                        updateChecker.openDownload()
+                        Task { await updateChecker.installAvailableUpdate() }
                     } label: {
-                        Label("Download VERITY \(updateChecker.latestVersion)", systemImage: "arrow.down.to.line")
+                        Label(
+                            updateChecker.isInstalling ? "Preparing update…" : "Install VERITY \(updateChecker.latestVersion) and restart",
+                            systemImage: "arrow.down.to.line"
+                        )
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(updateChecker.isInstalling)
+                    Button("Open manual installer") { updateChecker.openDownload() }
+                        .disabled(updateChecker.isInstalling)
                 }
-                Text("VERITY checks automatically and offers the official installer. Installing is always your choice; it never silently replaces the running app.")
+                Text("VERITY checks every six hours. Automatic installation is enabled by default and can be switched off at any time.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -176,6 +186,11 @@ struct VeritySettingsView: View {
         .onChange(of: automaticUpdateChecks) { enabled in
             if enabled { updateChecker.startAutomaticChecks() }
             else { updateChecker.stopAutomaticChecks() }
+        }
+        .onChange(of: automaticUpdateInstall) { enabled in
+            if enabled && updateChecker.updateAvailable {
+                Task { await updateChecker.installAvailableUpdate() }
+            }
         }
     }
 

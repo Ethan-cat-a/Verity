@@ -1,4 +1,4 @@
-# VERITY 0.6.1 — your chaotic desktop companion
+# VERITY 0.7.0 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. Verity has its own distinct character and personality.
 
@@ -67,9 +67,9 @@ Use **Save session** in chat to snapshot the last part of a conversation. Resume
 
 Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to Verity's connected intelligence service after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; additional app names can be added in Settings.
 
-## Automatic update checks
+## Automatic updates
 
-VERITY checks the official GitHub Releases endpoint on launch and periodically (when automatic checks are enabled). It compares the latest stable release to the installed version and shows a download action when a newer version exists. Installation remains user-approved; the app does not silently replace itself. This lightweight updater is used while VERITY's installers are ad-hoc signed and not notarized. A cryptographically verified in-app installer can be added when Developer ID signing and a dedicated update-signing key are configured.
+VERITY checks the official GitHub Releases endpoint at launch and every six hours. Automatic download and installation are enabled by default and can be disabled independently from update checks in Settings. Before replacing the app, VERITY downloads the version-matched ZIP, verifies the SHA-256 digest published by GitHub, checks the app bundle identifier and version, and verifies its code signature. A separate helper waits for VERITY to quit, replaces the app bundle, and launches the updated version. Automatic replacement is supported when `VERITY.app` is directly inside a writable `/Applications` or `~/Applications` folder; otherwise Settings provides the manual DMG installer. The current installer remains ad-hoc signed and is not notarized, so macOS may still require the one-time quarantine approval described above.
 
 ## Document privacy
 
