@@ -171,7 +171,7 @@ final class VerityPanelController: ObservableObject {
 
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = max(0.55, duration * 0.48)
-            context.timingFunction = CAMediaTimingFunction(controlPoint: 0.22, 0.72, 0.25, 1.0)
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 0.72, 0.25, 1.0)
             petPanel.animator().setFrameOrigin(control)
         }, completionHandler: { [weak self, weak petPanel] in
             Task { @MainActor in
