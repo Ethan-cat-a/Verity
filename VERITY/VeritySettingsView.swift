@@ -166,7 +166,7 @@ struct VeritySettingsView: View {
         .frame(width: 560, height: 690)
         .navigationTitle("Verity Settings")
         .task {
-            if selectedVoiceID == "iHiL14jSTiWXy4nzDtbq" { selectedVoiceID = VerityVoiceService.defaultID }
+            if selectedVoiceID == "iHiL14jSTiWXy4nzDtbq" { selectedVoiceID = VerityVoiceService.defaultVoiceID }
             UserDefaults.standard.register(defaults: [VerityUpdateChecker.automaticChecksKey: true])
             refreshVoiceKeyStatus()
             await checkConnection()

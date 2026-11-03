@@ -64,7 +64,7 @@ enum VerityVoiceService {
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: String(text.prefix(1800)),
-            model_id: "eleven_v3",
+            model_id: "eleven_multilingual_v2",
             voice_settings: .init(stability: 0.38, similarity_boost: 0.82, style: 0.70, speed: speed, use_speaker_boost: true)
         ))
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -290,6 +290,7 @@ final class VerityConversationModel: ObservableObject {
                 messages.append(VerityConversationMessage(isUser: false, text: "I can remember project notes and preferences, but I won't store passwords, codes, payment details, or keys."))
                 return
             }
+            let lower = remembered.lowercased()
             let category: VerityMemoryCategory = (lower.contains("prefer") || lower.contains("favorite") || lower.contains("favourite") || lower.contains("like ")) ? .preference : ((lower.contains("project") || lower.contains("working on") || lower.contains("building")) ? .project : .general)
             let title = String(remembered.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
             VerityMemoryStore.shared.saveMemory(title: title, content: remembered, category: category)
