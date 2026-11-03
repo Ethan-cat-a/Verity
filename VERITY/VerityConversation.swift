@@ -607,9 +607,9 @@ private enum VerityScriptedReplies {
         if ["hi", "hey", "hello", "yo", "hiya"].contains(text) ||
             text.hasPrefix("hello ") || text.hasPrefix("hey ") {
             return [
-                "Hey! I'm Verity, your personal helper friend! Ask me anything.",
-                "Hi there! It's me, Verity. What can I help you with?",
-                "Hello! Good to see you. Have you got a question for me?"
+                "Hellooooo! I'm Verity, your personal helper friend! Ask me anything, I know everything! ...Well, almost.",
+                "Hello there! I'm Verity. I've got lots of ideas. What are we doing today?",
+                "Hellooooo! Good to see you. What can I help you with?"
             ].randomElement()
         }
         if text.contains("good morning") {
@@ -689,7 +689,7 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Hey! I'm Verity, your personal helper friend!").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Hellooooo! I'm Verity, your personal helper friend!").font(.system(size: 16, weight: .bold, design: .rounded))
                             Text("Ask me anything, or drop in a supported document. I'll help you find what you need.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
