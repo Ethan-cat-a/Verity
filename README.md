@@ -44,7 +44,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Tap the microphone, speak naturally, then tap it again to finish.
 - Verity responds through its connected intelligence service and speaks in its selected character voice.
 
-The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies display partial text when the connected service supports streaming, and the chat can stay usable while Verity speaks.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies display partial text whenever the connected service supports streaming. Verity can also start speaking without locking the chat input.
 
 ### Configure the Verity voice
 

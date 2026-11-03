@@ -32,7 +32,7 @@ struct VerityVoiceOption: Identifiable, Hashable {
 
     static let all: [VerityVoiceOption] = [
         VerityVoiceOption(id: defaultID, title: "Bright cartoon", detail: "High-energy, playful character delivery"),
-        VerityVoiceOption(id: "CGOMbDUL52Yuc7oiDIm8", title: "Quirky game character", detail: "Cartoonish masculine game-character tone"),
+        VerityVoiceOption(id: "B6uUx2p7cRgxseOUyP6P", title: "Friendly young voice", detail: "Bright, conversational American character delivery"),
         VerityVoiceOption(id: "rLl4PSDTzX3VHL4wjSFI", title: "Warm animated companion", detail: "Natural, expressive male character delivery")
     ]
 }
@@ -98,6 +98,7 @@ final class VerityConversationModel: ObservableObject {
     @Published var isListening = false
     @Published var isSending = false
     @Published var isSpeaking = false
+    @Published var streamingReply = ""
     @Published var liveTranscript = ""
     @Published var errorMessage: String?
     @Published var voiceStatus = "Checking voice settings…"
@@ -474,10 +475,10 @@ private enum VerityScriptedReplies {
         if text.contains("good night") || text == "goodnight" { return "Good night! I'll be right here when you need me." }
         if text.contains("thank") { return "You're very welcome! That's what I'm here for." }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity, your little desktop companion. Verity's intelligence service is the intelligence behind my conversations, and I can also help you understand documents."
+            return "I'm Verity, your little desktop companion. I can chat, understand documents, and help you work through things on your Mac."
         }
         if text.contains("what can you do") || text == "help" {
-            return "I can chat with you, answer questions using Verity's intelligence service, read supported documents, summarize files, pull out key points, and keep safe copies in my Vault. You can talk to me or just drop a file on my ball."
+            return "I can chat, answer questions, read supported documents, summarize files, pull out key points, and keep safe copies in my Vault. Talk to me or drop a file on my ball."
         }
         if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
             return "Why did the computer go to the doctor? It had a virus. I know, I know… I'm working on my comedy."
