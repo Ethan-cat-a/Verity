@@ -680,7 +680,7 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Hellooooo! I'm Verity, your personal helper friend!").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Hello. I'm Verity, your personal helper.").font(.system(size: 16, weight: .bold, design: .rounded))
                             Text("Ask me anything, or drop in a supported document. I'll help you find what you need.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
