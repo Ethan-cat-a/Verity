@@ -7,6 +7,7 @@ import Combine
 @MainActor
 final class VerityPetLifeModel: ObservableObject {
     static let trashSnacksPreferenceKey = "verity.trashSnacksEnabled"
+    static let eerieIdlePreferenceKey = "verity.eerieIdleEnabled"
 
     @Published private(set) var hungerLevel = 0.0
     private var hungerTask: Task<Void, Never>?
