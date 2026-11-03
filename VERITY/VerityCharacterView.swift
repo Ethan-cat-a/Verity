@@ -2,16 +2,11 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-/// The full Verity conversation/document surface, opened from the desktop pet.
+/// The single, focused VERITY surface: one character, one conversation, one job.
 struct VerityDesktopView: View {
     @ObservedObject private var model = VerityModel.shared
     @StateObject private var conversation = VerityConversationModel()
     @State private var isDropTargeted = false
-    @State private var isConversationOpen = false
-    @State private var isScreenContextOpen = false
-    @State private var isMemoryManagerOpen = false
-    @State private var isCommandPaletteOpen = false
-    @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
 
     var body: some View {
         ZStack {
@@ -28,96 +23,65 @@ struct VerityDesktopView: View {
             } else if isConversationOpen {
                 VerityConversationView(
                     model: conversation,
-                    onClose: { isConversationOpen = false },
-                    onCommandPalette: { isCommandPaletteOpen = true }
+                    onClose: { isConversationOpen = false }
                 )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
-                characterHome.transition(.opacity)
+                characterHome
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
         .frame(width: 380, height: 560)
-        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: model.currentFile?.id)
-        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: isConversationOpen)
+        .animation(.spring(response: 0.34, dampingFraction: 0.84), value: model.currentFile?.id)
         .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
             FileDropHandler.handle(providers) { url in
                 Task { @MainActor in
                     guard let url else {
-                        model.setStatus("I couldn't open that. Try dropping a normal file.")
+                        model.setStatus("That file is beneath my standards. Try a normal document.")
                         return
                     }
-                    isConversationOpen = false
                     model.accept(fileURL: url)
                 }
             }
         }
-        .sheet(isPresented: $isScreenContextOpen) {
-            VerityScreenContextSheet()
-        }
-        .sheet(isPresented: $isMemoryManagerOpen) {
-            VerityMemoryManagerView { snapshot in
-                conversation.resumeSession(snapshot)
-                isConversationOpen = true
-            }
-        }
-        .sheet(isPresented: $isCommandPaletteOpen) {
-            VerityCommandPaletteView(
-                onTalk: { isConversationOpen = true },
-                onStudy: { isScreenContextOpen = true },
-                onMemory: { isMemoryManagerOpen = true },
-                onSettings: {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
-            )
-        }
     }
 
+    @State private var isConversationOpen = false
+
     private var characterHome: some View {
-        VStack(spacing: 12) {
-            HStack {
-                HStack(spacing: 7) {
-                    Circle().fill(Color.orange).frame(width: 7, height: 7)
+        VStack(spacing: 13) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("VERITY")
                         .font(.system(size: 12, weight: .black, design: .rounded))
                         .tracking(2.5)
+                    Text("THE KNOW-IT-ALL BALL")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .tracking(1.2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button { isCommandPaletteOpen = true } label: {
-                    Image(systemName: "command")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 27, height: 27)
-                        .background(.black.opacity(0.06), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut("k", modifiers: [.command])
-                .help("Open command palette · Command-K")
-
                 Button { VerityPanelController.shared.hide() } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 27, height: 27)
+                        .frame(width: 28, height: 28)
                         .background(.black.opacity(0.06), in: Circle())
                 }
                 .buttonStyle(.plain)
-                .help("Close this window (Verity stays on your desktop)")
+                .help("Hide this window. I'll still be here.")
             }
 
             Spacer(minLength: 0)
 
             VerityFace(
                 size: 235,
-                mood: isDropTargeted ? .manic : (model.isEating ? .eating : model.mood)
+                mood: isDropTargeted ? .excited : (model.isEating ? .eating : model.mood)
             )
-            .shadow(color: .orange.opacity(0.18), radius: 16, y: 10)
-            .animation(.spring(response: 0.34, dampingFraction: 0.60), value: model.mood)
-            .animation(.spring(response: 0.30, dampingFraction: 0.62), value: model.isEating)
+            .shadow(color: .orange.opacity(0.2), radius: 18, y: 10)
+            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: model.mood)
 
             Text(homeCaption)
-                .font(.system(size: 18, weight: .heavy, design: .rounded))
+                .font(.system(size: 19, weight: .heavy, design: .rounded))
                 .foregroundStyle(.primary)
 
             Text(model.statusMessage)
@@ -132,45 +96,23 @@ struct VerityDesktopView: View {
                 isConversationOpen = true
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "waveform")
-                    Text("Talk with Verity")
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                    Text("Ask Verity")
                     Spacer()
+                    Text("I KNOW.")
+                        .font(.system(size: 9, weight: .black, design: .rounded))
+                        .tracking(1)
                     Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold))
                 }
                 .font(.system(size: 13, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 17)
-                .frame(height: 46)
+                .frame(height: 47)
                 .background(Color(red: 0.13, green: 0.14, blue: 0.16), in: RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
 
-            Button {
-                isScreenContextOpen = true
-            } label: {
-                Label("Understand a window", systemImage: "macwindow")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 35)
-                    .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.07), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .help(screenContextEnabled ? "Choose a window for Verity to read" : "Enable this in Settings → Trust Center first")
-
-            Button {
-                isMemoryManagerOpen = true
-            } label: {
-                Label("Memory & sessions", systemImage: "brain")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 35)
-                    .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.07), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-
-            Label("Click Verity to open the assistant", systemImage: "cursorarrow.click")
+            Text("Or drop a document on me. Obviously.")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.tertiary)
 
@@ -181,124 +123,62 @@ struct VerityDesktopView: View {
     }
 
     private var homeCaption: String {
-        if isDropTargeted { return "Ooh, a file! Let me take a look." }
-        if model.isEating { return "Just having a little look!" }
+        if isDropTargeted { return "Excellent. Something worth my attention." }
+        if model.isEating { return "I'm inspecting it. You're welcome." }
         switch model.mood {
-        case .listening: return "I'm listening! Go ahead."
-        case .thinking: return "Just a second. I've got this."
-        case .speaking: return "See? I told you I could help."
-        case .shocked: return "Oh! I wasn't expecting that."
-        case .suspicious: return "Hmm. Something isn't quite right."
-        case .angry: return "Oh dear. That wasn't a good idea."
-        case .manic, .excited: return "Good. We're making progress."
-        case .sleepy: return "A tiny break? Oh, all right. I'm ready now!"
-        case .eating: return "Ooh, what's this?"
-        case .happy: return "Hello. What can I help you with?"
-        case .eerie: return "..."
+        case .listening: return "Go on. I'm listening."
+        case .thinking: return "One moment. Being brilliant takes a second."
+        case .speaking: return "See? Obviously."
+        case .shocked: return "Well. That's inconvenient."
+        case .suspicious: return "Interesting. Very interesting."
+        case .angry: return "You could have asked more politely."
+        case .manic, .excited: return "Another problem solved. Naturally."
+        case .sleepy: return "I was busy knowing things. Go on."
+        case .eating: return "A little snack. Don't mind me."
+        case .eerie: return "You didn't hear that."
+        case .happy: return "Hello. Ask me anything. I know everything."
         }
     }
 }
 
-/// A compact keyboard-friendly launcher for VERITY's main workflows.
-private struct VerityCommandPaletteView: View {
-    let onTalk: () -> Void
-    let onStudy: () -> Void
-    let onMemory: () -> Void
-    let onSettings: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("VERITY COMMANDS")
-                .font(.system(size: 10, weight: .black, design: .rounded))
-                .tracking(1.5)
-                .foregroundStyle(.secondary)
-            Text("What would you like to do?")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-            command("Talk with Verity", detail: "Ask a question or use your microphone", icon: "waveform", key: "1", action: onTalk)
-            command("Study / understand a window", detail: "Capture one window, review it, then choose a study action", icon: "book.closed", key: "2", action: onStudy)
-            command("Memory & saved sessions", detail: "Review saved notes or resume a conversation", icon: "brain", key: "3", action: onMemory)
-            command("Verity Settings", detail: "Privacy, voice, updates and appearance", icon: "gearshape", key: "4", action: onSettings)
-        }
-        .padding(18)
-        .frame(width: 390)
-        .background(.ultraThinMaterial)
-    }
-
-    private func command(
-        _ title: String,
-        detail: String,
-        icon: String,
-        key: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            dismiss()
-            action()
-        } label: {
-            HStack(spacing: 11) {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.orange)
-                    .frame(width: 30, height: 30)
-                    .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 12, weight: .semibold))
-                    Text(detail).font(.system(size: 10)).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text("⌘\(key)")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-            }
-            .contentShape(Rectangle())
-            .padding(9)
-            .background(.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 11))
-        }
-        .buttonStyle(.plain)
-        .keyboardShortcut(KeyEquivalent(key.first ?? "1"), modifiers: [.command])
-    }
-}
-
-/// A transparent, borderless desktop helper docked in the lower-right corner.
+/// The docked desktop ball. It is always available and never reads files or screens on its own.
 struct VerityDesktopPetView: View {
     @ObservedObject private var model = VerityModel.shared
     @ObservedObject private var controller = VerityPanelController.shared
-    @StateObject private var petLife = VerityPetLifeModel()
     @State private var isBreathing = false
     @State private var isChomping = false
     @State private var isHovering = false
-    @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
-    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
+    @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
 
     var body: some View {
         ZStack {
             VerityFace(
-                size: quietPresenceEnabled ? 88 : 142,
+                size: 142,
                 mood: model.isEating ? .eating : model.mood
             )
-            .opacity(quietPresenceEnabled ? 0.88 : 1.0)
-            .scaleEffect(model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998))
+            .scaleEffect((isHovering ? 1.045 : 1.0) * (model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998)))
             .offset(y: isBreathing && !model.isEating ? -0.7 : 0.7)
             .rotationEffect(.degrees(model.mood == .eerie ? -2.5 : (model.mood == .angry ? -4 : 0)))
             .shadow(color: .black.opacity(0.30), radius: 13, y: 8)
             .animation(.spring(response: 0.15, dampingFraction: 0.50), value: isChomping)
             .animation(.easeInOut(duration: 0.55), value: model.mood)
+            .animation(.spring(response: 0.20, dampingFraction: 0.62), value: isHovering)
             .contentShape(Circle())
             .onTapGesture {
+                model.showReaction(.excited, duration: 750_000_000)
                 controller.showCompanion()
             }
             .onHover { isHovering = $0 }
-            .help("Click Verity to ask for help. Right-click for options.")
+            .help("Click Verity. Obviously.")
 
             if isHovering {
-                Text("NEED A HAND?")
+                Text("ASK ME. I KNOW.")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.1)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 11)
                     .padding(.vertical, 7)
-                    .background(Color.black.opacity(0.88), in: RoundedRectangle(cornerRadius: 5))
+                    .background(Color.black.opacity(0.9), in: RoundedRectangle(cornerRadius: 5))
                     .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.white.opacity(0.18), lineWidth: 1))
                     .offset(y: -79)
                     .transition(.opacity.combined(with: .scale(scale: 0.94)))
@@ -306,18 +186,9 @@ struct VerityDesktopPetView: View {
             }
 
             if model.isEating {
-                Text("SAMPLE ACQUIRED")
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(.regularMaterial, in: Capsule())
-                    .offset(y: -91)
-                    .transition(.scale.combined(with: .opacity))
-                    .allowsHitTesting(false)
-            } else if petLife.hungerLevel > 0.68 {
-                Text("NO FILE. NO PROGRESS.")
+                Text("INSPECTION COMPLETE")
                     .font(.system(size: 10, weight: .black, design: .rounded))
-                    .tracking(1)
+                    .tracking(0.5)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
                     .background(.regularMaterial, in: Capsule())
@@ -330,12 +201,11 @@ struct VerityDesktopPetView: View {
         .background(Color.clear)
         .contentShape(Circle())
         .contextMenu {
-            Button("Open Verity") { controller.showCompanion() }
-            Button("Hide desktop helper") { controller.hidePet() }
+            Button("Ask Verity") { controller.showCompanion() }
+            Button("Hide desktop ball") { controller.hidePet() }
         }
         .onAppear {
-            petLife.start()
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.65).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }
         }
@@ -353,13 +223,13 @@ struct VerityDesktopPetView: View {
         }
         .task {
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64.random(in: 52...138) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 240...540) * 1_000_000_000)
                 guard !Task.isCancelled,
                       eerieIdleEnabled,
                       model.mood == .happy,
                       model.currentFile == nil,
                       !model.isEating else { continue }
-                model.showReaction(.eerie, duration: UInt64.random(in: 2_400...3_600) * 1_000_000)
+                model.showReaction(.eerie, duration: UInt64.random(in: 2_400...3_800) * 1_000_000)
             }
         }
     }

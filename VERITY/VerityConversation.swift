@@ -31,8 +31,8 @@ struct VerityVoiceOption: Identifiable, Hashable {
     static let all: [VerityVoiceOption] = [
         VerityVoiceOption(
             id: defaultID,
-            title: "Verity · Natural companion",
-            detail: "A smoother, grounded young American male library voice, selected for calm conversational delivery."
+            title: "Verity · Default voice",
+            detail: "A clear, natural American male library voice for Verity's confident character."
         ),
         VerityVoiceOption(
             id: "wWWn96OtTHu1sn8SRGEr",
@@ -47,6 +47,7 @@ enum VerityVoiceService {
     static let speedPreferenceKey = "verity.voice.speed"
     static let defaultVoiceID = VerityVoiceOption.defaultID
     static let previousDefaultVoiceID = "wWWn96OtTHu1sn8SRGEr"
+    static let useElevenLabsPreferenceKey = "verity.voice.useElevenLabs"
     private static let voiceMigrationKey = "verity.voice.preference.migrated.0.9.0"
 
     static func migrateLegacyVoicePreferenceIfNeeded() {
@@ -151,7 +152,8 @@ final class VerityConversationModel: ObservableObject {
     func refreshVoiceStatus() {
         do {
             let configured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
-            voiceStatus = configured ? "Verity character voice" : "Mac voice · Add an ElevenLabs key in Settings"
+            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
+            voiceStatus = configured && useElevenLabs ? "Verity character voice" : "Mac voice · Fast mode"
         } catch {
             voiceStatus = "Mac voice · Keychain unavailable"
         }
@@ -323,7 +325,7 @@ final class VerityConversationModel: ObservableObject {
             let title = String(remembered.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
             VerityMemoryStore.shared.saveMemory(title: title, content: remembered, category: category)
             let confirmation = VerityMemoryStore.shared.storageError == nil
-                ? "Saved. You can review or delete it in Memory & sessions."
+                ? "Saved. Naturally, I will remember."
                 : "I tried to save that, but the local memory file reported an error: \(VerityMemoryStore.shared.storageError ?? "unknown error")"
             messages.append(VerityConversationMessage(isUser: false, text: confirmation))
             startSpeaking(confirmation)
@@ -344,14 +346,16 @@ final class VerityConversationModel: ObservableObject {
         streamingReply = ""
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let history = self.messages.suffix(5).map {
-                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_800)))
+            let history = self.messages.suffix(4).map {
+                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_200)))
             }
-            let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(1_800))
+            let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(900))
+            let uncannyAside = Int.random(in: 1...24) == 1
             do {
                 let reply = try await self.nova.conversationReply(
                     history: Array(history),
                     additionalContext: savedContext,
+                    uncannyAside: uncannyAside,
                     onTextChunk: { [weak self] chunk in
                         self?.streamingReply += chunk
                     }
@@ -479,7 +483,10 @@ final class VerityConversationModel: ObservableObject {
         }
 
         do {
-            if let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
+            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
+            if useElevenLabs,
+               let apiKey = try VerityKeychain.readElevenLabsAPIKey(),
+               !apiKey.isEmpty {
                 voiceStatus = "VERITY character voice · Eleven v4"
                 let chunks = Self.makeSpeechChunks(text)
                 guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
@@ -515,10 +522,10 @@ final class VerityConversationModel: ObservableObject {
                     }
                 }
             } else {
-                voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
+                voiceStatus = "Mac voice · Fast local speech"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = Self.veritySystemVoice()
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
                 utterance.pitchMultiplier = 1.02
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
@@ -533,7 +540,7 @@ final class VerityConversationModel: ObservableObject {
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = Self.veritySystemVoice()
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
             utterance.pitchMultiplier = 1.02
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
@@ -542,7 +549,7 @@ final class VerityConversationModel: ObservableObject {
         }
     }
 
-    private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 230) -> [String] {
+    private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 320) -> [String] {
         let words = text.split(whereSeparator: \.isWhitespace)
         var chunks: [String] = []
         var current = ""
@@ -599,28 +606,34 @@ private enum VerityScriptedReplies {
         if ["hi", "hey", "hello", "yo", "hiya"].contains(text) ||
             text.hasPrefix("hello ") || text.hasPrefix("hey ") {
             return [
-                "Hello, I'm Verity. What can I help you with today?",
-                "Hi there. I'm ready when you are. What are we working on?",
-                "Hello! Show me what you're working on and we'll take it one step at a time."
+                "Hello. You found the smartest ball on your desktop. What do you need?",
+                "There you are. Ask away; I was getting bored being right.",
+                "Hello. I know everything. Try to keep up."
             ].randomElement()
         }
         if text.contains("good morning") {
-            return "Good morning. Ready when you are. What would you like to work on?"
+            return "Good morning. The day has improved now that I'm here."
         }
         if text.contains("good night") || text == "goodnight" {
-            return "Good night! I'll be right here whenever you need a hand."
+            return "Good night. Try not to miss having the answers."
         }
         if text.contains("thank") {
-            return "You're welcome. Glad I could help."
+            return "Naturally. You're welcome."
         }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity, your personal helper. I can help you understand things, work through problems, and make progress on what you're doing."
+            return "I'm Verity: the smartest ball on your desktop. I know everything worth knowing. Ask properly."
         }
         if text.contains("what can you do") || text == "help" {
-            return "I can answer questions, read supported documents, summarize files, find key details, and help you work through problems. Just ask!"
+            return "I answer questions, solve problems, and read documents you deliberately give me. In short: I handle the clever part."
+        }
+        if text.contains("are you watching") || text.contains("watching me") || text.contains("are you spying") {
+            return "No. I don't watch your screen. I only know what you type, say, or deliberately share. I simply have excellent timing."
+        }
+        if text.contains("are you real") {
+            return "Real enough to be right. Mostly."
         }
         if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
-            return "Why did the computer get cold? It left its Windows open. Pretty good, right?"
+            return "Why did the computer get cold? It left its Windows open. Try not to laugh too hard."
         }
         if text.contains("fun fact") {
             return "Here's a fun fact: an octopus has three hearts. Two of them stop beating when it swims. Isn't that amazing?"
@@ -629,7 +642,7 @@ private enum VerityScriptedReplies {
             return "I can manage a tiny wiggle. There we go."
         }
         if text == "bye" || text == "goodbye" || text == "see you" {
-            return "See you later! I'll be here when you need your helper friend."
+            return "Go on, then. I'll still be the smartest thing on your desktop when you return."
         }
         return nil
     }
@@ -638,7 +651,6 @@ private enum VerityScriptedReplies {
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
     let onClose: () -> Void
-    let onCommandPalette: () -> Void
     @State private var draft = ""
 
     var body: some View {
@@ -653,29 +665,13 @@ struct VerityConversationView: View {
                 .buttonStyle(.plain)
                 VerityFace(size: 48, mood: VerityModel.shared.mood)
                     .shadow(color: .orange.opacity(0.16), radius: 7, y: 3)
-                Button(action: onCommandPalette) {
-                    Image(systemName: "command")
-                        .font(.system(size: 11, weight: .bold))
-                        .frame(width: 27, height: 27)
-                        .background(.black.opacity(0.06), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut("k", modifiers: [.command])
-                .help("Open command palette · Command-K")
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Talk with Verity").font(.system(size: 15, weight: .bold, design: .rounded))
+                    Text("VERITY").font(.system(size: 15, weight: .black, design: .rounded)).tracking(1.2)
                     Text(model.isListening ? "I'm listening…" : model.isSpeaking ? "Verity is talking…" : model.voiceStatus)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
-                Button { model.saveCurrentSession() } label: {
-                    Image(systemName: "bookmark").font(.system(size: 12, weight: .semibold)).frame(width: 27, height: 27)
-                }
-                .buttonStyle(.plain)
-                .help("Save this session")
-                .disabled(model.messages.isEmpty)
-
                 if model.isSpeaking {
                     Button { model.stopSpeaking() } label: {
                         Image(systemName: "stop.fill").font(.system(size: 11, weight: .bold)).frame(width: 27, height: 27)
@@ -690,8 +686,8 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Hello. I'm Verity, your personal helper.").font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("Ask me anything, or drop in a supported document. I'll help you find what you need.")
+                            Text("Ask me anything. I already know.").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Or drop in a document. I will try not to make a big deal of it.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
@@ -741,15 +737,6 @@ struct VerityConversationView: View {
                     .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    quickAction("Explain simply", prompt: "Explain the next topic I ask about in clear, simple steps.")
-                    quickAction("Help me write", prompt: "Help me draft or improve something I'm writing. Ask what it's for if needed.")
-                    quickAction("Summarize", prompt: "Help me summarize a document or text I share.")
-                    quickAction("Tell me a joke", prompt: "Tell me a joke.")
-                }
-            }
-
             HStack(spacing: 8) {
                 Button { model.toggleListening() } label: {
                     Image(systemName: model.isListening ? "stop.fill" : "mic.fill")
@@ -779,9 +766,6 @@ struct VerityConversationView: View {
         .onDisappear { model.cancelListening() }
     }
 
-    private func quickAction(_ title: String, prompt: String) -> some View {
-        Button(title) { model.send(prompt) }.buttonStyle(.bordered).controlSize(.small)
-    }
 
     private func sendDraft() {
         let text = draft

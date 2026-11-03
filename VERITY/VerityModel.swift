@@ -2,6 +2,10 @@ import Foundation
 import AppKit
 import Combine
 
+enum VerityCharacterPreferences {
+    static let eerieIdleEnabledKey = "verity.eerieIdleEnabled"
+}
+
 struct VerityFile: Identifiable {
     let id = UUID()
     let url: URL
@@ -26,8 +30,7 @@ final class VerityModel: ObservableObject {
     static let shared = VerityModel()
 
     @Published var currentFile: VerityFile?
-    @Published var statusMessage = "Hello. I'm Verity, your personal helper."
-    @Published var lastEatenFileName: String?
+    @Published var statusMessage = "I know everything worth knowing. Try me."
     @Published var isEating = false
     @Published var mood: VerityMood = .happy
     private var hasSecurityScopedAccess = false
@@ -46,8 +49,7 @@ final class VerityModel: ObservableObject {
         hasSecurityScopedAccess = fileURL.startAccessingSecurityScopedResource()
         // Keep security-scoped access alive while the file inspector is open.
         currentFile = VerityFile(url: fileURL)
-        lastEatenFileName = fileURL.lastPathComponent
-        statusMessage = "Ooh, a new file! Let's see what we've got: \(fileURL.lastPathComponent)." 
+        statusMessage = "A new document. Excellent. I'll inspect it."
         isEating = true
         mood = .eating
 
@@ -64,7 +66,7 @@ final class VerityModel: ObservableObject {
         releaseCurrentFileAccess()
         currentFile = nil
         mood = .happy
-        statusMessage = "No problem! I'm ready for the next thing."
+        statusMessage = "Done. Bring me something interesting."
     }
 
     /// Balances the security-scoped access acquired for the currently open file.
