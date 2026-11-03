@@ -152,7 +152,7 @@ final class VerityConversationModel: ObservableObject {
     func refreshVoiceStatus() {
         do {
             let configured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
-            let useElevenLabs = UserDefaults.standard.bool(forKey: Self.useElevenLabsPreferenceKey)
+            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
             voiceStatus = configured && useElevenLabs ? "Verity character voice" : "Mac voice · Fast mode"
         } catch {
             voiceStatus = "Mac voice · Keychain unavailable"
