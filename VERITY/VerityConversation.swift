@@ -47,6 +47,7 @@ enum VerityVoiceService {
     static let speedPreferenceKey = "verity.voice.speed"
     static let defaultVoiceID = VerityVoiceOption.defaultID
     static let previousDefaultVoiceID = "wWWn96OtTHu1sn8SRGEr"
+    static let useElevenLabsPreferenceKey = "verity.voice.useElevenLabs"
     private static let voiceMigrationKey = "verity.voice.preference.migrated.0.9.0"
 
     static func migrateLegacyVoicePreferenceIfNeeded() {
@@ -151,7 +152,8 @@ final class VerityConversationModel: ObservableObject {
     func refreshVoiceStatus() {
         do {
             let configured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
-            voiceStatus = configured ? "Verity character voice" : "Mac voice · Add an ElevenLabs key in Settings"
+            let useElevenLabs = UserDefaults.standard.bool(forKey: Self.useElevenLabsPreferenceKey)
+            voiceStatus = configured && useElevenLabs ? "Verity character voice" : "Mac voice · Fast mode"
         } catch {
             voiceStatus = "Mac voice · Keychain unavailable"
         }
@@ -481,7 +483,10 @@ final class VerityConversationModel: ObservableObject {
         }
 
         do {
-            if let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
+            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
+            if useElevenLabs,
+               let apiKey = try VerityKeychain.readElevenLabsAPIKey(),
+               !apiKey.isEmpty {
                 voiceStatus = "VERITY character voice · Eleven v4"
                 let chunks = Self.makeSpeechChunks(text)
                 guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
@@ -520,7 +525,7 @@ final class VerityConversationModel: ObservableObject {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = Self.veritySystemVoice()
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
                 utterance.pitchMultiplier = 1.02
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
@@ -535,7 +540,7 @@ final class VerityConversationModel: ObservableObject {
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = Self.veritySystemVoice()
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
             utterance.pitchMultiplier = 1.02
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
@@ -544,7 +549,7 @@ final class VerityConversationModel: ObservableObject {
         }
     }
 
-    private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 230) -> [String] {
+    private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 320) -> [String] {
         let words = text.split(whereSeparator: \.isWhitespace)
         var chunks: [String] = []
         var current = ""
