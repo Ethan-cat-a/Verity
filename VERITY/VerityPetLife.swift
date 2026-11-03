@@ -55,7 +55,7 @@ final class VerityPetLifeModel: ObservableObject {
 
             let name = snack.lastPathComponent
             VerityModel.shared.lastEatenFileName = name
-            VerityModel.shared.statusMessage = "Found \(name). I left it exactly where it was."
+            VerityModel.shared.statusMessage = "Oh! I found \(name). Don't worry, I only looked at the name."
             VerityModel.shared.isEating = true
             VerityModel.shared.setMood(.eating)
             Task { @MainActor in
