@@ -9,7 +9,6 @@ struct VerityDocumentAssistantSheet: View {
     @State private var pendingPrompt: String?
     @State private var hasConfirmedUpload = false
     @State private var isShowingUploadConfirmation = false
-    @State private var hasAPIKey = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -29,35 +28,26 @@ struct VerityDocumentAssistantSheet: View {
                     .keyboardShortcut(.cancelAction)
             }
 
-            Label("Your document is only sent after you choose an action and confirm.", systemImage: "lock.shield")
+            Label("The file is read locally first. Extracted text is sent to NOVA V8 only after you confirm.", systemImage: "lock.shield")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.blue.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
 
-            if !hasAPIKey {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Connect Verity's brain first")
-                        .font(.headline)
-                    Text("Add an OpenAI API key in Settings. Verity keeps it in macOS Keychain.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 12) {
-                        Button {
-                            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                        } label: {
-                            Label("Open VERITY Settings", systemImage: "gearshape")
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        Button("Refresh") { checkKey() }
-                            .buttonStyle(.bordered)
-                    }
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(assistant.isConnected ? Color.green : Color.orange)
+                    .frame(width: 8, height: 8)
+                Text(assistant.connectionStatus)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Check") {
+                    Task { await assistant.checkConnection() }
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
 
             HStack(spacing: 8) {
@@ -65,7 +55,7 @@ struct VerityDocumentAssistantSheet: View {
                 quickAction("Key points", prompt: "Extract the most important facts, claims, numbers, people, dates, and conclusions from this document. Group related points and reference page or section locations where possible.")
                 quickAction("Explain simply", prompt: "Explain this document in plain language for someone new to the topic. Define important terms and use a simple example where helpful.")
             }
-            .disabled(!hasAPIKey || assistant.isWorking)
+            .disabled(!assistant.isConnected || assistant.isWorking)
 
             VStack(alignment: .leading, spacing: 7) {
                 HStack {
@@ -75,7 +65,7 @@ struct VerityDocumentAssistantSheet: View {
                     Spacer()
                     if assistant.isWorking {
                         ProgressView().controlSize(.small)
-                        Text("Reading...")
+                        Text("Asking NOVA V8…")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -104,7 +94,7 @@ struct VerityDocumentAssistantSheet: View {
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...3)
                     .onSubmit { sendQuestion() }
-                    .disabled(!hasAPIKey || assistant.isWorking)
+                    .disabled(!assistant.isConnected || assistant.isWorking)
                 Button {
                     sendQuestion()
                 } label: {
@@ -112,21 +102,21 @@ struct VerityDocumentAssistantSheet: View {
                         .font(.system(size: 25))
                 }
                 .buttonStyle(.plain)
-                .disabled(!hasAPIKey || assistant.isWorking || question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!assistant.isConnected || assistant.isWorking || question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help("Ask Verity")
             }
         }
         .padding(18)
         .frame(minWidth: 570, minHeight: 560)
-        .onAppear(perform: checkKey)
-        .alert("Send this document to OpenAI?", isPresented: $isShowingUploadConfirmation) {
+        .task { await assistant.checkConnection() }
+        .alert("Send extracted text to NOVA V8?", isPresented: $isShowingUploadConfirmation) {
             Button("Cancel", role: .cancel) { pendingPrompt = nil }
-            Button("Send to OpenAI") {
+            Button("Send to NOVA V8") {
                 hasConfirmedUpload = true
                 runPendingPrompt()
             }
         } message: {
-            Text("Verity will send “\(file.name)” to the OpenAI Responses API for analysis. The file is not sent until you confirm. Continue?")
+            Text("Verity will extract text from “\(file.name)” on your Mac and send that text with your question to NOVA V8. The original file is not uploaded. Continue?")
         }
     }
 
@@ -144,7 +134,10 @@ struct VerityDocumentAssistantSheet: View {
     }
 
     private func submit(_ prompt: String) {
-        guard hasAPIKey else { return }
+        guard assistant.isConnected else {
+            Task { await assistant.checkConnection() }
+            return
+        }
         pendingPrompt = prompt
         if hasConfirmedUpload {
             runPendingPrompt()
@@ -157,9 +150,5 @@ struct VerityDocumentAssistantSheet: View {
         guard let prompt = pendingPrompt else { return }
         pendingPrompt = nil
         assistant.ask(fileURL: file.url, prompt: prompt)
-    }
-
-    private func checkKey() {
-        hasAPIKey = (try? VerityKeychain.readAPIKey()) != nil
     }
 }
