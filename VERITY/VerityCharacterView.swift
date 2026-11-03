@@ -303,7 +303,7 @@ struct VerityFace: View {
     }
 
     private var wideMouth: Bool {
-        mood == .manic || mood == .excited || mood == .eerie
+        mood == .eerie
     }
 
     var body: some View {
