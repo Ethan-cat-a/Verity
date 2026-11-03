@@ -14,11 +14,10 @@ private struct ElevenLabsSpeechRequest: Encodable {
     let text: String
     let model_id: String
     let voice_settings: VoiceSettings
+
     struct VoiceSettings: Encodable {
         let stability: Double
         let similarity_boost: Double
-        let style: Double
-        let speed: Double
         let use_speaker_boost: Bool
     }
 }
@@ -28,13 +27,19 @@ struct VerityVoiceOption: Identifiable, Hashable {
     let title: String
     let detail: String
 
-    static let defaultID = "QZ1okeFI43NQd6lXAzQ5"
+    static let defaultID = "wWWn96OtTHu1sn8SRGEr"
 
     static let all: [VerityVoiceOption] = [
-        VerityVoiceOption(id: defaultID, title: "Verity · Dry character voice", detail: "Original male character voice with a firmer mid-range, dry timing, sharper emphasis, and a less bubbly delivery."),
-        VerityVoiceOption(id: "iHiL14jSTiWXy4nzDtbq", title: "Bright cartoon (classic)", detail: "High-energy, playful character delivery"),
-        VerityVoiceOption(id: "B6uUx2p7cRgxseOUyP6P", title: "Friendly young voice", detail: "Bright, conversational American character delivery"),
-        VerityVoiceOption(id: "rLl4PSDTzX3VHL4wjSFI", title: "Warm animated companion", detail: "Natural, expressive male character delivery")
+        VerityVoiceOption(
+            id: defaultID,
+            title: "Verity · Expressive helper",
+            detail: "Original youthful adult male library voice with dynamic, clear, character-led delivery."
+        ),
+        VerityVoiceOption(
+            id: "QZ1okeFI43NQd6lXAzQ5",
+            title: "Tate Dalton · Natural male",
+            detail: "A smoother, grounded young American male character voice."
+        )
     ]
 }
 
@@ -42,20 +47,34 @@ enum VerityVoiceService {
     static let voicePreferenceKey = "verity.voice.id"
     static let speedPreferenceKey = "verity.voice.speed"
     static let defaultVoiceID = VerityVoiceOption.defaultID
+    static let previousDefaultVoiceID = "QZ1okeFI43NQd6lXAzQ5"
 
     static var voiceID: String {
         let saved = UserDefaults.standard.string(forKey: voicePreferenceKey)
-        return saved == "iHiL14jSTiWXy4nzDtbq" ? defaultVoiceID : (saved ?? defaultVoiceID)
+        if saved == previousDefaultVoiceID || saved == "iHiL14jSTiWXy4nzDtbq" {
+            return defaultVoiceID
+        }
+        return saved ?? defaultVoiceID
     }
 
-    static var speed: Double {
-        let stored = UserDefaults.standard.double(forKey: speedPreferenceKey)
-        return stored == 0 ? 1.02 : min(1.20, max(0.85, stored))
-    }
-
-    static func synthesize(_ text: String, apiKey: String) async throws -> Data {
-        let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_64"
+    static func synthesize(
+        _ text: String,
+        apiKey: String,
+        mood: VerityMood? = nil
+    ) async throws -> Data {
+        let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\\(voiceID)?output_format=mp3_44100_64"
         guard let url = URL(string: endpoint) else { throw VerityVoiceError.invalidURL }
+
+        let direction: String
+        switch mood {
+        case .angry: direction = "[frustrated]"
+        case .shocked: direction = "[surprised]"
+        case .suspicious: direction = "[curious]"
+        case .eerie: direction = "[whispers]"
+        case .manic, .excited: direction = "[excited]"
+        default: direction = "[cheerfully]"
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
@@ -63,14 +82,15 @@ enum VerityVoiceService {
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
-            text: String(text.prefix(1800)),
-            model_id: "eleven_multilingual_v2",
-            voice_settings: .init(stability: 0.30, similarity_boost: 0.88, style: 0.82, speed: speed, use_speaker_boost: true)
+            text: "\\(direction) \\(String(text.prefix(1_760)))",
+            model_id: "eleven_v4_turbo",
+            voice_settings: .init(stability: 0.40, similarity_boost: 0.84, use_speaker_boost: false)
         ))
+
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw VerityVoiceError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            let detail = String(data: data, encoding: .utf8) ?? "ElevenLabs returned HTTP \(http.statusCode)."
+            let detail = String(data: data, encoding: .utf8) ?? "ElevenLabs returned HTTP \\(http.statusCode)."
             throw VerityVoiceError.requestFailed(http.statusCode, detail)
         }
         guard !data.isEmpty else { throw VerityVoiceError.emptyAudio }
@@ -110,6 +130,7 @@ final class VerityConversationModel: ObservableObject {
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var audioPlayer: AVAudioPlayer?
     private var speechTask: Task<Void, Never>?
+    private var pendingAudioTask: Task<Data, Error>?
     private var speechGeneration = 0
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -434,6 +455,8 @@ final class VerityConversationModel: ObservableObject {
         defer {
             if generation == speechGeneration {
                 audioPlayer = nil
+                pendingAudioTask?.cancel()
+                pendingAudioTask = nil
                 speechTask = nil
                 isSpeaking = false
                 if !Task.isCancelled {
@@ -448,34 +471,61 @@ final class VerityConversationModel: ObservableObject {
 
         do {
             if let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
-                let audio = try await VerityVoiceService.synthesize(text, apiKey: apiKey)
-                guard !Task.isCancelled, generation == speechGeneration else { return }
-                let player = try AVAudioPlayer(data: audio)
-                audioPlayer = player
-                player.prepareToPlay()
-                guard player.play() else { throw VerityVoiceError.invalidResponse }
-                while player.isPlaying && !Task.isCancelled && generation == speechGeneration {
-                    try? await Task.sleep(nanoseconds: 80_000_000)
+                voiceStatus = "VERITY character voice · Eleven v4 Turbo"
+                let chunks = Self.makeSpeechChunks(text)
+                guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
+
+                pendingAudioTask = Task {
+                    try await VerityVoiceService.synthesize(firstChunk, apiKey: apiKey, mood: reaction)
+                }
+
+                for index in chunks.indices {
+                    guard !Task.isCancelled, generation == speechGeneration,
+                          let currentTask = pendingAudioTask else { return }
+
+                    let audio = try await currentTask.value
+                    guard !Task.isCancelled, generation == speechGeneration else { return }
+
+                    // Start preparing the next phrase while the current phrase is playing.
+                    if index + 1 < chunks.count {
+                        let nextChunk = chunks[index + 1]
+                        pendingAudioTask = Task {
+                            try await VerityVoiceService.synthesize(nextChunk, apiKey: apiKey, mood: reaction)
+                        }
+                    } else {
+                        pendingAudioTask = nil
+                    }
+
+                    let player = try AVAudioPlayer(data: audio)
+                    audioPlayer = player
+                    player.prepareToPlay()
+                    guard player.play() else { throw VerityVoiceError.invalidResponse }
+
+                    while player.isPlaying && !Task.isCancelled && generation == speechGeneration {
+                        try? await Task.sleep(nanoseconds: 45_000_000)
+                    }
                 }
             } else {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
-                utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.02
-                utterance.pitchMultiplier = 0.98
+                utterance.voice = Self.veritySystemVoice()
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.06
+                utterance.pitchMultiplier = 1.12
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                     try? await Task.sleep(nanoseconds: 80_000_000)
                 }
             }
         } catch {
+            pendingAudioTask?.cancel()
+            pendingAudioTask = nil
             guard !Task.isCancelled, generation == speechGeneration else { return }
             voiceStatus = "Using Mac voice · character voice service unavailable"
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.02
-            utterance.pitchMultiplier = 0.98
+            utterance.voice = Self.veritySystemVoice()
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.06
+            utterance.pitchMultiplier = 1.12
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                 try? await Task.sleep(nanoseconds: 120_000_000)
@@ -483,11 +533,45 @@ final class VerityConversationModel: ObservableObject {
         }
     }
 
+    private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 230) -> [String] {
+        let words = text.split(whereSeparator: \\.isWhitespace)
+        var chunks: [String] = []
+        var current = ""
+
+        for word in words {
+            let addition = current.isEmpty ? String(word) : " " + word
+            if !current.isEmpty && current.count + addition.count > maximumCharacters {
+                chunks.append(current)
+                current = String(word)
+            } else {
+                current += addition
+            }
+
+            if current.count >= 110, let last = current.last, ".!?;".contains(last) {
+                chunks.append(current)
+                current = ""
+            }
+        }
+
+        if !current.isEmpty { chunks.append(current) }
+        return chunks.isEmpty ? [text] : chunks
+    }
+
+    private static func veritySystemVoice() -> AVSpeechSynthesisVoice? {
+        let voices = AVSpeechSynthesisVoice.speechVoices()
+        return voices.first(where: {
+            $0.language == "en-US" && $0.gender == .male && $0.quality == .enhanced
+        }) ?? voices.first(where: {
+            $0.language == "en-US" && $0.gender == .male
+        }) ?? AVSpeechSynthesisVoice(language: "en-US")
+    }
 
     func stopSpeaking() {
         speechGeneration += 1
         speechTask?.cancel()
         speechTask = nil
+        pendingAudioTask?.cancel()
+        pendingAudioTask = nil
         audioPlayer?.stop()
         audioPlayer = nil
         speechSynthesizer.stopSpeaking(at: .immediate)
@@ -502,30 +586,42 @@ private enum VerityScriptedReplies {
         let text = rawText.lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "!?., "))
-        if ["hi", "hey", "hello", "yo", "hiya"].contains(text) || text.hasPrefix("hello ") || text.hasPrefix("hey ") {
-            return ["You're back. Good. What needs fixing?", "I'm here. Get to the point.", "Hello. I was enjoying the silence. What do you need?"].randomElement()
+
+        if ["hi", "hey", "hello", "yo", "hiya"].contains(text) ||
+            text.hasPrefix("hello ") || text.hasPrefix("hey ") {
+            return [
+                "Hey! I'm Verity, your personal helper friend! Ask me anything.",
+                "Hi there! It's me, Verity. What can I help you with?",
+                "Hello! Good to see you. Have you got a question for me?"
+            ].randomElement()
         }
-        if text.contains("good morning") { return "Morning. Let's make the day less inefficient. What's first?" }
-        if text.contains("good night") || text == "goodnight" { return "Logging off? Sensible. I'll be here when the next problem appears." }
-        if text.contains("thank") { return "Obviously. Try not to make a habit of needing me. You're welcome." }
+        if text.contains("good morning") {
+            return "Good morning! Ready when you are. What are we figuring out today?"
+        }
+        if text.contains("good night") || text == "goodnight" {
+            return "Good night! I'll be right here whenever you need a hand."
+        }
+        if text.contains("thank") {
+            return "You're welcome! That's what I'm here for."
+        }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm VERITY. I stay on your desktop, help with the work, read your documents, and point out the obvious when necessary. Try to keep up."
+            return "I'm Verity, your personal helper friend! Ask me anything. I know a lot, and I'll do my best to help."
         }
         if text.contains("what can you do") || text == "help" {
-            return "I can answer questions, read supported documents, extract key points, and save copies to the Vault. Click me when you need help or drop a file here. Try not to make it weird."
+            return "I can answer questions, read supported documents, summarize files, find key details, and help you work through problems. Just ask!"
         }
         if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
-            return "I told a computer to take a break. It said it couldn't — it had too many tabs open. Finally, someone understands my workload."
+            return "Why did the computer get cold? It left its Windows open. Pretty good, right?"
         }
         if text.contains("fun fact") {
-            return "Fun fact: octopuses have three hearts. Two stop beating when they swim. Efficient. Slightly concerning. I approve."
+            return "Here's a fun fact: an octopus has three hearts. Two of them stop beating when it swims. Isn't that amazing?"
         }
         if text == "dance" || text.contains("do a dance") {
             VerityModel.shared.setMood(.excited)
-            return "A brief victory movement. Don't expect an encore."
+            return "Oh, absolutely! One tiny victory dance. Ta-da!"
         }
         if text == "bye" || text == "goodbye" || text == "see you" {
-            return "Go on, then. I'll remain here, judging the desktop arrangement."
+            return "See you later! I'll be here when you need your helper friend."
         }
         return nil
     }
@@ -576,8 +672,8 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("VERITY. At your service. Be specific.").font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("Speak or type a request. I can read supported files, extract the useful parts, and help you work through the problem.")
+                            Text("Hey! I'm Verity, your personal helper friend!").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Ask me anything, or drop in a supported document. I'll help you find what you need.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
