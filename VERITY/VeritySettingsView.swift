@@ -11,8 +11,9 @@ struct VeritySettingsView: View {
     @State private var voiceMessage = ""
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
-    @AppStorage(VerityVoiceService.speedPreferenceKey) private var voiceSpeed = 1.08
+    @AppStorage(VerityVoiceService.speedPreferenceKey) private var voiceSpeed = 1.02
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
+    @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
     @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
@@ -40,12 +41,13 @@ struct VeritySettingsView: View {
                 Text("Connection is handled securely by Verity.").font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Verity's chaotic pet life") {
+            Section("Desktop helper") {
                 Toggle("Let Verity snack from Trash", isOn: $trashSnacksEnabled)
-                Text("When hungry, Verity occasionally picks a random item name from your user Trash and performs a chomping animation. It only reads the filename. It never opens, deletes, moves, renames, or restores the item. Turn this off any time.")
+                Text("Verity stays docked in the lower-right corner, like a desktop helper. Click once to open the assistant; it does not wander or respond to dragging.")
                     .font(.caption).foregroundStyle(.secondary)
-                Label("Verity wanders around your desktop while idle. Drag its face to move it; it complains when you let go.", systemImage: "move.3d")
-                    .font(.callout)
+                Toggle("Occasional unsettling idle stare", isOn: $eerieIdleEnabled)
+                Text("When idle, Verity may briefly stop blinking and hold an unnerving stare. This can be disabled here.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
 
@@ -108,8 +110,8 @@ struct VeritySettingsView: View {
                 HStack(spacing: 9) {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Bright cartoon").font(.system(size: 13, weight: .semibold))
-                        Text("Expressive, low-latency character speech").font(.caption).foregroundStyle(.secondary)
+                        Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Verity character voice").font(.system(size: 13, weight: .semibold))
+                        Text("Sharper, less bubbly character delivery").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "key")
@@ -120,7 +122,7 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
-                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Expressive cartoon-character voice.")
+                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original character voice with dry timing and stronger emphasis.")
                     .font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
                     Text("Speaking pace")
@@ -210,7 +212,7 @@ struct VeritySettingsView: View {
                 voiceMessage = "Add an ElevenLabs API key before previewing this voice."
                 return
             }
-            let sample = "Hey! I'm Verity. Oh, look who finally showed up! What are we doing today? Let's make it interesting."
+            let sample = "I'm VERITY. You're back. Good. Tell me what needs fixing and be reasonably specific. I can read the document, find the useful parts, and help you get this sorted. Try not to make me do all the thinking."
             let audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
             previewPlayer?.stop()
             let player = try AVAudioPlayer(data: audio)
