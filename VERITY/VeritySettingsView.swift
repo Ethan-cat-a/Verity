@@ -20,7 +20,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.1"
     }
 
     var body: some View {
@@ -45,7 +45,7 @@ struct VeritySettingsView: View {
                 Text("Verity stays docked in the lower-right corner, like a desktop helper. Click once to open the assistant; it does not wander or respond to dragging.")
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle("Occasional unsettling idle stare", isOn: $eerieIdleEnabled)
-                Text("When idle, Verity may briefly stop blinking and hold an unnerving stare. This can be disabled here.")
+                Text("At unpredictable intervals, while otherwise idle, Verity briefly holds a horror-style expression for about 2–4 seconds, then returns to his normal smile. He does not speak or move during it.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -163,7 +163,7 @@ struct VeritySettingsView: View {
                 LabeledContent("Intelligence", value: "VERITY")
                 LabeledContent("Voice", value: "ElevenLabs · Character voice")
                 LabeledContent("Version", value: appVersion)
-                Text("A docked desktop assistant for conversations, documents, and quick help.")
+                Text("A docked desktop helper with a cheerful normal look and rare horror reactions.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -215,7 +215,7 @@ struct VeritySettingsView: View {
             previewPlayer = player
             player.prepareToPlay()
             guard player.play() else { throw VerityVoiceError.invalidResponse }
-            voiceMessage = "Playing the selected Verity voice."
+            voiceMessage = "Playing the selected Verity character voice."
         } catch {
             voiceMessage = "Voice preview failed: \(error.localizedDescription)"
         }
