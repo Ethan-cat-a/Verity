@@ -86,7 +86,7 @@ enum VerityKeychain {
 
     private static func read(account: String) throws -> String? {
         let query: [String: Any] = [
-            kSecClass as String: kSecAttrGenericPassword,
+            kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
