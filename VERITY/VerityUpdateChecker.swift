@@ -72,6 +72,7 @@ final class VerityUpdateChecker: ObservableObject {
         status = "Checking GitHub Releases…"
         defer { isChecking = false }
 
+        var successful = false
         do {
             var request = URLRequest(url: Self.releaseAPI)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -119,13 +120,16 @@ final class VerityUpdateChecker: ObservableObject {
             } else {
                 status = "You're up to date · VERITY \(current)"
             }
+            successful = true
         } catch {
             status = "Update check failed · \(error.localizedDescription)"
         }
 
-        let checked = Date()
-        lastCheckedAt = checked
-        UserDefaults.standard.set(checked, forKey: Self.lastCheckKey)
+        if successful {
+            let checked = Date()
+            lastCheckedAt = checked
+            UserDefaults.standard.set(checked, forKey: Self.lastCheckKey)
+        }
     }
 
     func openDownload() {

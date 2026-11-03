@@ -40,7 +40,7 @@ private enum VerityScreenCaptureService {
             let appName = window.owningApplication?.applicationName ?? "Unknown app"
             let title = (window.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { return nil }
-            let bundleID = window.owningApplication?.bundleIdentifier?.lowercased() ?? ""
+            let bundleID = window.owningApplication?.bundleIdentifier.lowercased() ?? ""
             let searchableName = (appName + " " + bundleID).lowercased()
             guard !excluded.contains(where: { !$0.isEmpty && searchableName.contains($0) }) else { return nil }
             return VerityScreenWindow(window: window, applicationName: appName, title: title)
