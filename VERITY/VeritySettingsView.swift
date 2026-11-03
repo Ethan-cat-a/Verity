@@ -21,7 +21,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.6.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.0"
     }
 
     var body: some View {
@@ -169,7 +169,7 @@ struct VeritySettingsView: View {
                 LabeledContent("Intelligence", value: "VERITY")
                 LabeledContent("Voice", value: "ElevenLabs · Character voice")
                 LabeledContent("Version", value: appVersion)
-                Text("A small, expressive desktop companion for conversations and files.")
+                Text("A docked desktop assistant for conversations, documents, and quick help.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
