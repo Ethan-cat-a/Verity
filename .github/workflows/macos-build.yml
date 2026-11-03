@@ -121,7 +121,11 @@ jobs:
           test -n "$ZIP"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$DMG" "$ZIP" --clobber
+            # Explicitly remove same-named assets first. This avoids an API
+            # 422 if the release's existing assets cannot be clobbered in place.
+            gh release delete-asset "$TAG" "$(basename "$DMG")" --yes || true
+            gh release delete-asset "$TAG" "$(basename "$ZIP")" --yes || true
+            gh release upload "$TAG" "$DMG" "$ZIP"
           else
             gh release create "$TAG" "$DMG" "$ZIP" \
               --title "VERITY $TAG" \
