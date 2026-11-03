@@ -1,6 +1,6 @@
-# VERITY 0.8.0 — desktop helper
+# VERITY 0.8.1 — desktop helper
 
-VERITY is a native macOS desktop assistant with a muted gold spherical character, asymmetrical dark eyes, and a crooked toothy grin. The character is intentionally severe and occasionally unsettling rather than cute or childlike.
+VERITY is a native macOS desktop assistant built around a bright yellow smiley-sphere character: glossy shading, simple black oval eyes, and a curved smile. Its normal personality is cheerful and helpful; the horror expression is a separate, brief, occasional idle event.
 
 ## Download VERITY — no Xcode required
 
@@ -23,8 +23,10 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 
 - Verity is docked in the lower-right corner of the main display. It does not roam, roll, or move around freely.
 - Click the character once to open the full assistant and document window. Hovering displays a compact "NEED A HAND?" prompt; right-click opens helper options.
-- The character uses a darker, matte gold finish, uneven dark eyes, a crooked toothy grin, and a sharper idle expression.
-- Every so often, Verity briefly stops blinking and holds an unnerving stare. Disable **Occasional unsettling idle stare** in Settings to turn this off.
+- The normal character returns to the bright yellow, glossy smiley-sphere design, with two plain black oval eyes and a simple curved smile.
+- The large toothy grin, uneven stare, and raised brows are reserved for a brief horror expression.
+- While otherwise idle, the horror expression may happen at random intervals (roughly every 52–138 seconds) and lasts about 2.4–3.6 seconds before Verity returns to his normal face.
+- Disable **Occasional unsettling idle stare** in Settings to turn this off.
 - Speaking, eating, suspicious, angry, shocked, and eerie expressions remain separate states.
 - When enabled, Verity may still sample a random filename from the user's Trash for its visual snack reaction. **Trash snacks are visual only:** it never opens, deletes, moves, renames, or restores the item. Disable "Let Verity snack from Trash" in Settings to turn this off.
 
@@ -35,7 +37,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Tap the microphone, speak naturally, then tap it again to finish.
 - Verity responds through its connected intelligence service and speaks in its selected character voice.
 
-The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies stream partial text as the connected service returns it. The app now sends a smaller recent-message window and caps saved context to reduce prompt overhead. Verity can speak without locking the chat input.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies stream partial text as the connected service returns it. The app uses a smaller recent-message window to reduce prompt overhead. Spoken output is synthesized in short phrases, with the next phrase prepared while the current one plays; playback can be interrupted.
 
 ### Configure the Verity voice
 
@@ -43,7 +45,11 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose a character preset and adjust speaking pace in Settings. The default library voice is tuned for firmer, drier delivery with stronger emphasis and less bubbly expression. It is an original library voice, not an imitation or clone of a real voice actor. Without a key, Verity uses the Mac voice with a lower pitch setting and measured pace.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. The default is an expressive young-adult male library voice selected for lively, character-led delivery. Speech uses Eleven v4 Turbo and is prepared phrase by phrase so the first part can play while the next phrase is being generated. The voice is an original library voice, not an imitation or clone of Verity's credited performer. Without a key, VERITY selects the best available enhanced English male system voice on the Mac.
+
+### Quick helper actions
+
+The conversation includes shortcuts for **Explain simply**, **Help me write**, **Summarize**, and **Tell me a joke**. These start user-requested tasks; they do not monitor the desktop.
 
 ## Memory & context (0.6.0)
 
