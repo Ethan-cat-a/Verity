@@ -123,7 +123,7 @@ struct VeritySettingsView: View {
                 }
                 Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original expressive male character voice.")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("Speech engine: Eleven v4 Turbo · expressive delivery with low-latency synthesis and phrase-by-phrase playback.")
+                Text("Speech engine: Eleven v4 · expressive delivery with phrase-by-phrase pre-generation.")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Preview selected voice") {
                     Task { await previewSelectedVoice() }
