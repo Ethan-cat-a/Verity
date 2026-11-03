@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15
@@ -15,11 +18,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build VERITY
-        run: >-
-          xcodebuild
-          -project VERITY.xcodeproj
-          -scheme VERITY
-          -configuration Debug
-          -sdk macosx
-          CODE_SIGNING_ALLOWED=NO
-          build
+        run: |
+          xcodebuild \
+            -project VERITY.xcodeproj \
+            -scheme VERITY \
+            -configuration Release \
+            -sdk macosx \
+            -derivedDataPath "$RUNNER_TEMP/VERITY-Build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package the macOS app
+        run: |
+          APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
+          test -d "$APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/VERITY-macOS.zip"
+
+      - name: Upload downloadable macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: VERITY-macOS
+          path: VERITY-macOS.zip
+          if-no-files-found: error
+          retention-days: 30
