@@ -20,13 +20,13 @@ struct VerityDesktopView: View {
             if let file = model.currentFile {
                 VerityFileInspectorView(file: file) { model.closeFile() }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else if conversation.messages.isEmpty && !isConversationOpen {
-                characterHome
-            } else {
+            } else if isConversationOpen {
                 VerityConversationView(
                     model: conversation,
                     onClose: { isConversationOpen = false }
                 )
+            } else {
+                characterHome
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
@@ -148,7 +148,7 @@ struct VerityDesktopPetView: View {
     @State private var isBreathing = false
     @State private var isChomping = false
     @State private var isHovering = false
-    @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
 
     var body: some View {
         ZStack {
