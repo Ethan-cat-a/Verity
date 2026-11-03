@@ -30,7 +30,8 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 ## Chaotic desktop pet
 
 - Verity now appears as a transparent, borderless desktop ball rather than living inside the large card window.
-- It wanders naturally within the current display, following short curved paths with eased starts and stops. It no longer jumps to a random monitor.\n- Dragging gives the ball a small, damped roll with momentum; rotation follows the distance travelled.
+- It wanders naturally within the current display, following short curved paths with eased starts and stops. It no longer jumps to a random monitor.
+- Dragging gives the ball a small, damped roll with momentum; rotation follows the distance travelled.
 - Drag the ball itself to roll it around. It says a randomly selected grumpy line when you release it.
 - Double-click the ball to open the full conversation and document window. Right-click for desktop-pet options.
 - Idle animation uses a subtle breath, occasional natural blink, and a simple curved smile. Eating and talking keep the separate two-frame toothy jaw animation.
