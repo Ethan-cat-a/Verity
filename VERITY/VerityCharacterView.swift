@@ -181,13 +181,15 @@ struct VerityDesktopPetView: View {
     @State private var isChomping = false
     @State private var isHovering = false
     @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
 
     var body: some View {
         ZStack {
             VerityFace(
-                size: 142,
+                size: quietPresenceEnabled ? 88 : 142,
                 mood: model.isEating ? .eating : model.mood
             )
+            .opacity(quietPresenceEnabled ? 0.88 : 1.0)
             .scaleEffect(model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998))
             .offset(y: isBreathing && !model.isEating ? -0.7 : 0.7)
             .rotationEffect(.degrees(model.mood == .eerie ? -2.5 : (model.mood == .angry ? -4 : 0)))
