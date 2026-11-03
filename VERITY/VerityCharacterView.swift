@@ -351,6 +351,9 @@ struct VerityFace: View {
         .frame(width: size, height: size)
         .accessibilityLabel("Verity, a bright yellow smiley sphere with black oval eyes and a curved smile")
         .task(id: mood) {
+            if mood == .eerie {
+                isBlinking = false
+            }
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
                 guard mood != .eerie else {
