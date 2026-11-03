@@ -9,9 +9,13 @@ struct VeritySettingsView: View {
     @State private var hasSavedElevenLabsKey = false
     @State private var voiceMessage = ""
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
+    @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
+    @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
+    @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
+    @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.4.4"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.5.0"
     }
 
     var body: some View {
@@ -38,6 +42,53 @@ struct VeritySettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Label("Verity wanders around your desktop while idle. Drag its face to move it; it complains when you let go.", systemImage: "move.3d")
                     .font(.callout)
+            }
+
+
+            Section("Trust Center") {
+                Toggle("Allow screen understanding", isOn: $screenContextEnabled)
+                Text("Off by default. When enabled, Verity can capture one window only after you choose it and press Capture. Text is read locally, shown for review, and sent to NOVA V8 only after you confirm. No background screen recording.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextField("Excluded apps (comma-separated)", text: $excludedAppsRaw)
+                    .textFieldStyle(.roundedBorder)
+                Text("Password and keychain apps are excluded by default. Add any other app names you never want to appear in the capture list.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Label("The screenshot stays on this Mac. Only the OCR text you review is sent to NOVA V8 after confirmation.", systemImage: "hand.raised.fill")
+                    .font(.callout)
+            }
+
+            Section("Updates") {
+                Toggle("Automatically check for updates", isOn: $automaticUpdateChecks)
+                HStack(spacing: 8) {
+                    Image(systemName: updateChecker.updateAvailable ? "arrow.down.circle.fill" : "arrow.clockwise.circle")
+                        .foregroundStyle(updateChecker.updateAvailable ? .orange : .secondary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(updateChecker.status)
+                            .font(.system(size: 13, weight: .semibold))
+                        if let checked = updateChecker.lastCheckedAt {
+                            Text("Last checked " + checked.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text("Checks GitHub Releases when VERITY launches and then periodically.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button(updateChecker.isChecking ? "Checking…" : "Check now") {
+                        Task { await updateChecker.checkNow() }
+                    }
+                    .disabled(updateChecker.isChecking)
+                }
+                if updateChecker.updateAvailable {
+                    Button {
+                        updateChecker.openDownload()
+                    } label: {
+                        Label("Download VERITY \(updateChecker.latestVersion)", systemImage: "arrow.down.to.line")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                Text("VERITY checks automatically and offers the official installer. Installing is always your choice; it never silently replaces the running app.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Verity voice · ElevenLabs") {
@@ -92,7 +143,16 @@ struct VeritySettingsView: View {
         .padding(16)
         .frame(width: 560, height: 690)
         .navigationTitle("Verity Settings")
-        .task { refreshVoiceKeyStatus(); await checkConnection() }
+        .task {
+            UserDefaults.standard.register(defaults: [VerityUpdateChecker.automaticChecksKey: true])
+            refreshVoiceKeyStatus()
+            await checkConnection()
+            if automaticUpdateChecks { updateChecker.startAutomaticChecks() }
+        }
+        .onChange(of: automaticUpdateChecks) { enabled in
+            if enabled { updateChecker.startAutomaticChecks() }
+            else { updateChecker.stopAutomaticChecks() }
+        }
     }
 
     private func refreshVoiceKeyStatus() {

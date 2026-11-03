@@ -21,6 +21,7 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 350_000_000)
+            VerityUpdateChecker.shared.startAutomaticChecks()
             VerityPanelController.shared.showPet()
         }
     }
@@ -28,6 +29,7 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
 
 struct VerityMenuBarView: View {
     @ObservedObject private var model = VerityModel.shared
+    @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -78,6 +80,21 @@ struct VerityMenuBarView: View {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
             } label: {
                 Label("Settings…", systemImage: "gearshape")
+            }
+
+            if updateChecker.updateAvailable {
+                Button {
+                    updateChecker.openDownload()
+                } label: {
+                    Label("Update VERITY · \(updateChecker.latestVersion)", systemImage: "arrow.down.circle.fill")
+                }
+            } else {
+                Button {
+                    Task { await updateChecker.checkNow() }
+                } label: {
+                    Label(updateChecker.isChecking ? "Checking for updates…" : "Check for updates…", systemImage: "arrow.clockwise")
+                }
+                .disabled(updateChecker.isChecking)
             }
 
             if let file = model.lastEatenFileName {
