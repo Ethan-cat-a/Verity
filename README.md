@@ -1,6 +1,6 @@
-# VERITY 0.7.0 — your chaotic desktop companion
+# VERITY 0.8.0 — desktop helper
 
-VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. Verity has its own distinct character and personality.
+VERITY is a native macOS desktop assistant with a muted gold spherical character, asymmetrical dark eyes, and a crooked toothy grin. The character is intentionally severe and occasionally unsettling rather than cute or childlike.
 
 ## Download VERITY — no Xcode required
 
@@ -19,33 +19,23 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 
 [View all VERITY releases](https://github.com/Ethan-cat-a/Verity/releases).
 
-## Verity's expressions
+## Character and desktop helper
 
-- The original yellow floating sphere look with a huge, slightly unsettling toothy grin.
-- A clean, tooth-free curved smile at rest; the toothy grin appears when Verity opens its mouth to speak, eat, or react.
-- Separate shocked, suspicious, angry, sleepy, and manic expressions.
-- Automatic face reactions during document drops, voice conversations, jokes, and errors.
-- Native macOS app icon generated to match Verity.
-
-## Chaotic desktop pet
-
-- Verity now appears as a transparent, borderless desktop ball rather than living inside the large card window.
-- It wanders naturally within the current display, following short curved paths with eased starts and stops. It no longer jumps to a random monitor.
-- Dragging gives the ball a small, damped roll with momentum; rotation follows the distance travelled.
-- Drag the ball itself to roll it around. It says a randomly selected grumpy line when you release it.
-- Double-click the ball to open the full conversation and document window. Right-click for desktop-pet options.
-- Idle animation uses a subtle breath, occasional natural blink, and a simple curved smile. Eating and talking keep the separate two-frame toothy jaw animation.
-- When hungry, Verity may sample a random item name from your user Trash for a chomping gag.
-- **Trash snacks are visual only.** It reads only the filename and never opens, deletes, moves, renames, or restores the item. Disable "Let Verity snack from Trash" in Settings to turn this off.
+- Verity is docked in the lower-right corner of the main display. It does not roam, roll, or move around freely.
+- Click the character once to open the full assistant and document window. Hovering displays a compact "NEED A HAND?" prompt; right-click opens helper options.
+- The character uses a darker, matte gold finish, uneven dark eyes, a crooked toothy grin, and a sharper idle expression.
+- Every so often, Verity briefly stops blinking and holds an unnerving stare. Disable **Occasional unsettling idle stare** in Settings to turn this off.
+- Speaking, eating, suspicious, angry, shocked, and eerie expressions remain separate states.
+- When enabled, Verity may still sample a random filename from the user's Trash for its visual snack reaction. **Trash snacks are visual only:** it never opens, deletes, moves, renames, or restores the item. Disable "Let Verity snack from Trash" in Settings to turn this off.
 
 ## Talk with Verity
 
-- Press **Talk with Verity** on the floating character.
+- Click Verity, then choose **Talk with Verity** in the assistant window.
 - Allow microphone and speech recognition access when macOS asks.
 - Tap the microphone, speak naturally, then tap it again to finish.
 - Verity responds through its connected intelligence service and speaks in its selected character voice.
 
-The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies display partial text whenever the connected service supports streaming. Verity can also start speaking without locking the chat input.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies stream partial text as the connected service returns it. The app now sends a smaller recent-message window and caps saved context to reduce prompt overhead. Verity can speak without locking the chat input.
 
 ### Configure the Verity voice
 
@@ -53,7 +43,7 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose between three original character-style presets and adjust speaking pace in Settings. The default is a bright, high-energy cartoon voice; it is an existing library preset, not a copy of the credited performer. Without a key, Verity uses the Mac voice with a slightly higher pitch and livelier pace.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose a character preset and adjust speaking pace in Settings. The default library voice is tuned for firmer, drier delivery with stronger emphasis and less bubbly expression. It is an original library voice, not an imitation or clone of a real voice actor. Without a key, Verity uses the Mac voice with a lower pitch setting and measured pace.
 
 ## Memory & context (0.6.0)
 
