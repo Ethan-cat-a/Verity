@@ -360,7 +360,7 @@ struct VerityMemoryManagerView: View {
     private var memoryList: some View {
         List {
             if filteredMemories.isEmpty {
-                ContentUnavailableView("No saved memories", systemImage: "brain", description: Text("Use “Remember that…” in chat or create a memory here."))
+                VStack(spacing: 8) { Image(systemName: "brain").font(.largeTitle).foregroundStyle(.secondary); Text("No saved memories").font(.headline); Text("Use “Remember that…” in chat or create a memory here.").font(.caption).foregroundStyle(.secondary) }.frame(maxWidth: .infinity).padding(30)
             } else {
                 ForEach(filteredMemories) { item in
                     HStack(alignment: .top, spacing: 10) {
@@ -396,7 +396,7 @@ struct VerityMemoryManagerView: View {
     private var sessionList: some View {
         List {
             if store.sessions.isEmpty {
-                ContentUnavailableView("No saved sessions", systemImage: "clock.arrow.circlepath", description: Text("Save a conversation to pick it up later."))
+                VStack(spacing: 8) { Image(systemName: "clock.arrow.circlepath").font(.largeTitle).foregroundStyle(.secondary); Text("No saved sessions").font(.headline); Text("Save a conversation to pick it up later.").font(.caption).foregroundStyle(.secondary) }.frame(maxWidth: .infinity).padding(30)
             } else {
                 ForEach(store.sessions) { session in
                     VStack(alignment: .leading, spacing: 7) {

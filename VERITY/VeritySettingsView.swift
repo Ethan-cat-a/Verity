@@ -27,7 +27,7 @@ struct VeritySettingsView: View {
                     Circle().fill(isConnected ? Color.green : Color.orange).frame(width: 9, height: 9)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(connectionStatus).font(.system(size: 13, weight: .semibold))
-                        Text("NOVA V8 powers Verity's conversations and document understanding.")
+                        Text("Verity handles conversations, documents, and saved context.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()

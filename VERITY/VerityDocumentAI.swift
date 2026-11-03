@@ -303,6 +303,7 @@ struct VerityChatTurn: Encodable {
 
 private struct NovaChatRequest: Encodable {
     let messages: [NovaAPIMessage]
+    var stream: Bool? = nil
 }
 
 private struct NovaAPIMessage: Encodable {
