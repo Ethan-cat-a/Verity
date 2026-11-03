@@ -180,28 +180,41 @@ struct VerityDesktopPetView: View {
     @StateObject private var conversation = VerityConversationModel()
     @State private var isBreathing = false
     @State private var isChomping = false
-    @State private var isDragging = false
-    @State private var previousTranslation = CGSize.zero
+    @State private var isHovering = false
+    @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
 
     var body: some View {
         ZStack {
             VerityFace(
-                size: 154,
+                size: 142,
                 mood: model.isEating ? .eating : model.mood
             )
-            .scaleEffect(model.isEating ? (isChomping ? 1.075 : 0.935) : (isBreathing ? 1.012 : 0.992))
-            .offset(y: isBreathing && !model.isEating ? -1.5 : 1.5)
-            .rotationEffect(.degrees(controller.rollAngle + (model.mood == .angry ? -5 : 0)))
-            .shadow(color: .orange.opacity(0.24), radius: 12, y: 7)
-            .animation(.easeInOut(duration: 1.7), value: controller.rollAngle)
+            .scaleEffect(model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998))
+            .offset(y: isBreathing && !model.isEating ? -0.7 : 0.7)
+            .rotationEffect(.degrees(model.mood == .eerie ? -2.5 : (model.mood == .angry ? -4 : 0)))
+            .shadow(color: .black.opacity(0.30), radius: 13, y: 8)
             .animation(.spring(response: 0.15, dampingFraction: 0.50), value: isChomping)
-            .animation(.spring(response: 0.36, dampingFraction: 0.65), value: model.mood)
+            .animation(.easeInOut(duration: 0.55), value: model.mood)
             .contentShape(Circle())
-            .gesture(petDragGesture)
-            .onTapGesture(count: 2) {
+            .onTapGesture {
                 controller.showCompanion()
             }
-            .help("Double-click to open Verity. Drag to roll it around. Right-click for options.")
+            .onHover { isHovering = $0 }
+            .help("Click Verity to ask for help. Right-click for options.")
+
+            if isHovering {
+                Text("NEED A HAND?")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .background(Color.black.opacity(0.88), in: RoundedRectangle(cornerRadius: 5))
+                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                    .offset(y: -79)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                    .allowsHitTesting(false)
+            }
 
             if model.isEating {
                 Text("CHOMP!")
@@ -249,36 +262,17 @@ struct VerityDesktopPetView: View {
                 try? await Task.sleep(nanoseconds: 155_000_000)
             }
         }
-    }
-
-    private var petDragGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
-            .onChanged { value in
-                if !isDragging {
-                    isDragging = true
-                    previousTranslation = .zero
-                    controller.beginUserDrag()
-                    model.setMood(.excited)
-                }
-
-                let delta = CGSize(
-                    width: value.translation.width - previousTranslation.width,
-                    height: value.translation.height - previousTranslation.height
-                )
-                previousTranslation = value.translation
-                controller.dragPet(by: delta)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 38...72) * 1_000_000_000)
+                guard !Task.isCancelled,
+                      eerieIdleEnabled,
+                      model.mood == .happy,
+                      model.currentFile == nil,
+                      !model.isEating else { continue }
+                model.showReaction(.eerie, duration: UInt64.random(in: 2_800...4_200) * 1_000_000)
             }
-            .onEnded { value in
-                isDragging = false
-                previousTranslation = .zero
-                let predicted = value.predictedEndTranslation
-                let extra = CGSize(
-                    width: (predicted.width - value.translation.width) * 3.6,
-                    height: (predicted.height - value.translation.height) * 3.6
-                )
-                controller.endUserDrag(withVelocity: extra)
-                conversation.reactAfterBeingDragged()
-            }
+        }
     }
 }
 
@@ -294,6 +288,7 @@ enum VerityMood: Equatable {
     case suspicious
     case angry
     case manic
+    case eerie
 }
 
 /// Verity's deliberately simple, unsettling yellow sphere.
@@ -309,7 +304,7 @@ struct VerityFace: View {
     }
 
     private var wideMouth: Bool {
-        mood == .manic || mood == .excited
+        mood == .manic || mood == .excited || mood == .eerie
     }
 
     var body: some View {
@@ -318,24 +313,16 @@ struct VerityFace: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            Color(red: 1.0, green: 0.99, blue: 0.30),
-                            Color(red: 1.0, green: 0.91, blue: 0.02),
-                            Color(red: 0.88, green: 0.65, blue: 0.0)
+                            Color(red: 0.91, green: 0.76, blue: 0.12),
+                            Color(red: 0.88, green: 0.66, blue: 0.015),
+                            Color(red: 0.59, green: 0.39, blue: 0.005)
                         ],
                         center: UnitPoint(x: 0.30, y: 0.22),
                         startRadius: size * 0.015,
                         endRadius: size * 0.82
                     )
                 )
-                .overlay(Circle().stroke(Color.black.opacity(0.16), lineWidth: max(1, size * 0.009)))
-                .overlay(alignment: .topLeading) {
-                    Ellipse()
-                        .fill(.white.opacity(0.30))
-                        .frame(width: size * 0.20, height: size * 0.075)
-                        .blur(radius: size * 0.012)
-                        .rotationEffect(.degrees(-30))
-                        .offset(x: size * 0.19, y: size * 0.105)
-                }
+                .overlay(Circle().stroke(Color.black.opacity(0.34), lineWidth: max(1.2, size * 0.012)))
 
             HStack(spacing: size * 0.255) {
                 eye(isLeft: true)
@@ -355,10 +342,11 @@ struct VerityFace: View {
                 .offset(y: size * 0.185)
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Verity, a yellow smiley sphere with a simple curved smile")
+        .accessibilityLabel("Verity, a muted gold sphere with a crooked, unsettling grin")
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
+                if mood == .eerie { continue }
                 withAnimation(.easeInOut(duration: 0.075)) { isBlinking = true }
                 try? await Task.sleep(nanoseconds: 115_000_000)
                 withAnimation(.easeInOut(duration: 0.10)) { isBlinking = false }
@@ -380,23 +368,17 @@ struct VerityFace: View {
 
     private func eye(isLeft: Bool) -> some View {
         let heightFactor: CGFloat = isBlinking ? 0.018
+            : (mood == .eerie ? (isLeft ? 0.19 : 0.115)
             : (mood == .sleepy ? 0.045
-            : (mood == .angry ? 0.105 : (mood == .shocked ? 0.175 : 0.145)))
-        let widthFactor: CGFloat = mood == .shocked ? 0.135 : 0.105
-        let angle: Double = mood == .angry ? (isLeft ? 15 : -15)
-            : (mood == .suspicious ? (isLeft ? -7 : 8) : 0)
+            : (mood == .angry ? 0.105 : (mood == .shocked ? 0.175 : 0.145))))
+        let widthFactor: CGFloat = mood == .shocked || mood == .eerie ? 0.125 : 0.105
+        let angle: Double = mood == .eerie ? (isLeft ? -5 : 7)
+            : (mood == .angry ? (isLeft ? 15 : -15)
+            : (mood == .suspicious ? (isLeft ? -7 : 8) : 0))
 
         return Ellipse()
             .fill(Color(red: 0.018, green: 0.014, blue: 0.009))
             .frame(width: size * widthFactor, height: size * heightFactor)
-            .overlay(alignment: .topTrailing) {
-                if !isBlinking && mood != .sleepy {
-                    Circle()
-                        .fill(.white.opacity(0.80))
-                        .frame(width: size * 0.022, height: size * 0.022)
-                        .offset(x: -size * 0.018, y: size * 0.018)
-                }
-            }
             .rotationEffect(.degrees(angle))
             .animation(.spring(response: 0.22, dampingFraction: 0.65), value: mood)
             .animation(.easeInOut(duration: 0.10), value: isBlinking)
@@ -438,7 +420,7 @@ struct VerityFace: View {
                     lineJoin: .round
                 )
             )
-            .frame(width: size * 0.32, height: size * 0.085)
+            .frame(width: size * (mood == .eerie ? 0.49 : 0.42), height: size * 0.10)
     }
 
     private var openGrin: some View {
@@ -464,16 +446,13 @@ struct VerityFace: View {
     private func toothRow(count: Int, toothHeight: CGFloat) -> some View {
         HStack(spacing: size * 0.006) {
             ForEach(0..<count, id: \.self) { index in
-                RoundedRectangle(cornerRadius: size * 0.012, style: .continuous)
-                    .fill(Color(red: 1.0, green: 0.94, blue: 0.72))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: size * 0.012, style: .continuous)
-                            .stroke(Color.black.opacity(0.22), lineWidth: max(0.5, size * 0.003))
-                    }
+                Rectangle()
+                    .fill(Color(red: 0.91, green: 0.85, blue: 0.66))
                     .frame(
-                        width: size * (index == count / 2 ? 0.066 : 0.056),
-                        height: toothHeight
+                        width: size * (index == count / 2 ? 0.061 : 0.052),
+                        height: toothHeight * (index.isMultiple(of: 2) ? 1.0 : 0.82)
                     )
+                    .rotationEffect(.degrees(index.isMultiple(of: 2) ? 1.4 : -1.8))
             }
         }
     }
