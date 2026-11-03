@@ -18,7 +18,6 @@ private struct ElevenLabsSpeechRequest: Encodable {
     struct VoiceSettings: Encodable {
         let stability: Double
         let similarity_boost: Double
-        let use_speaker_boost: Bool
     }
 }
 
@@ -99,7 +98,7 @@ enum VerityVoiceService {
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: "\(direction) \(String(text.prefix(1_760)))",
             model_id: "eleven_v4",
-            voice_settings: .init(stability: 0.40, similarity_boost: 0.84, use_speaker_boost: false)
+            voice_settings: .init(stability: 0.34, similarity_boost: 0.84)
         ))
 
         let (data, response) = try await URLSession.shared.data(for: request)
