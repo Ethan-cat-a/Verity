@@ -156,14 +156,18 @@ struct VerityDesktopPetView: View {
                 size: 142,
                 mood: model.isEating ? .eating : model.mood
             )
-            .scaleEffect(model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998))
+            .scaleEffect((isHovering ? 1.045 : 1.0) * (model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998)))
             .offset(y: isBreathing && !model.isEating ? -0.7 : 0.7)
             .rotationEffect(.degrees(model.mood == .eerie ? -2.5 : (model.mood == .angry ? -4 : 0)))
             .shadow(color: .black.opacity(0.30), radius: 13, y: 8)
             .animation(.spring(response: 0.15, dampingFraction: 0.50), value: isChomping)
             .animation(.easeInOut(duration: 0.55), value: model.mood)
+            .animation(.spring(response: 0.20, dampingFraction: 0.62), value: isHovering)
             .contentShape(Circle())
-            .onTapGesture { controller.showCompanion() }
+            .onTapGesture {
+                model.showReaction(.excited, duration: 750_000_000)
+                controller.showCompanion()
+            }
             .onHover { isHovering = $0 }
             .help("Click Verity. Obviously.")
 
@@ -201,7 +205,7 @@ struct VerityDesktopPetView: View {
             Button("Hide desktop ball") { controller.hidePet() }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.65).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }
         }
