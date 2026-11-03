@@ -154,19 +154,19 @@ struct VerityDesktopView: View {
     }
 
     private var homeCaption: String {
-        if isDropTargeted { return "GIVE ME THE FILE." }
-        if model.isEating { return "PROCESSING. DO NOT INTERRUPT." }
+        if isDropTargeted { return "Ooh, a file! Let me take a look." }
+        if model.isEating { return "Just having a little look!" }
         switch model.mood {
         case .listening: return "I'm listening! Go ahead."
         case .thinking: return "Just a second. I've got this."
         case .speaking: return "See? I told you I could help."
         case .shocked: return "Oh! I wasn't expecting that."
         case .suspicious: return "Hmm. Something isn't quite right."
-        case .angry: return "You really shouldn't have done that."
+        case .angry: return "Oh dear. That wasn't a good idea."
         case .manic, .excited: return "YES! I knew I could help!"
-        case .sleepy: return "A little break? Fine. Briefly."
+        case .sleepy: return "A tiny break? Oh, all right. I'm ready now!"
         case .eating: return "Ooh, what's this?"
-        case .happy: return "Hey! I'm Verity, your personal helper friend!"
+        case .happy: return "Hellooooo! I'm Verity, your personal helper friend!"
         case .eerie: return "..."
         }
     }
