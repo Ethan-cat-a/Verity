@@ -257,7 +257,8 @@ final class VerityConversationModel: ObservableObject {
 
         if let scripted = VerityScriptedReplies.reply(for: text) {
             messages.append(VerityConversationMessage(isUser: false, text: scripted))
-            Task { await speak(scripted) }
+            let reaction = reactionFor(input: text, reply: scripted)
+            Task { await speak(scripted, reaction: reaction) }
             return
         }
 
@@ -271,15 +272,40 @@ final class VerityConversationModel: ObservableObject {
             do {
                 let reply = try await self.nova.conversationReply(history: Array(history))
                 self.messages.append(VerityConversationMessage(isUser: false, text: reply))
-                await self.speak(reply)
+                let reaction = self.reactionFor(input: text, reply: reply)
+                await self.speak(reply, reaction: reaction)
             } catch {
                 self.errorMessage = error.localizedDescription
-                VerityModel.shared.setMood(.happy)
+                VerityModel.shared.showReaction(.shocked)
             }
         }
     }
 
-    private func speak(_ text: String) async {
+    private func reactionFor(input: String, reply: String) -> VerityMood? {
+        let prompt = input.lowercased()
+        let answer = reply.lowercased()
+
+        if prompt.contains("joke") || prompt.contains("fun fact") ||
+            prompt.contains("make me laugh") || answer.contains("haha") ||
+            answer.contains("lol") {
+            return .manic
+        }
+        if prompt.contains("wrong") || prompt.contains("you suck") ||
+            prompt.contains("angry") || prompt.contains("mad") {
+            return .angry
+        }
+        if prompt.contains("really") || prompt.contains("are you sure") ||
+            prompt.contains("prove it") || prompt.contains("sus") {
+            return .suspicious
+        }
+        if answer.contains("i'm sorry") || answer.contains("i am sorry") ||
+            answer.contains("something went wrong") {
+            return .shocked
+        }
+        return nil
+    }
+
+    private func speak(_ text: String, reaction: VerityMood? = nil) async {
         isSpeaking = true
         VerityModel.shared.setMood(.speaking)
         do {
@@ -309,7 +335,11 @@ final class VerityConversationModel: ObservableObject {
             while speechSynthesizer.isSpeaking { try? await Task.sleep(nanoseconds: 120_000_000) }
         }
         isSpeaking = false
-        VerityModel.shared.setMood(.happy)
+        if let reaction {
+            VerityModel.shared.showReaction(reaction)
+        } else {
+            VerityModel.shared.setMood(.happy)
+        }
     }
 
     func stopSpeaking() {

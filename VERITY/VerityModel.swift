@@ -37,6 +37,7 @@ final class VerityModel: ObservableObject {
     func accept(fileURL: URL) {
         guard fileURL.isFileURL else {
             statusMessage = "That isn't a file I can eat."
+            showReaction(.shocked)
             return
         }
 
@@ -76,10 +77,24 @@ final class VerityModel: ObservableObject {
 
     func setStatus(_ message: String) {
         statusMessage = message
+        let lowered = message.lowercased()
+        if lowered.contains("couldn't") || lowered.contains("failed") || lowered.contains("error") {
+            showReaction(.shocked)
+        }
     }
 
     func setMood(_ newMood: VerityMood) {
         mood = newMood
+    }
+
+    /// Show a one-shot expression, then return to Verity's default grin.
+    func showReaction(_ reaction: VerityMood, duration: UInt64 = 1_650_000_000) {
+        mood = reaction
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: duration)
+            guard let self, self.mood == reaction else { return }
+            self.mood = .happy
+        }
     }
 }
 
