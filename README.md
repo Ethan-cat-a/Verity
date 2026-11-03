@@ -52,7 +52,7 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose between three original character-style presets and adjust speaking pace in Settings. The default is a bright, high-energy cartoon voice; it is an original preset, not a copy of the credited performer. Without a key, Verity uses the Mac voice with a slightly higher pitch and livelier pace.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose between three original character-style presets and adjust speaking pace in Settings. The default is a bright, high-energy cartoon voice; it is an existing library preset, not a copy of the credited performer. Without a key, Verity uses the Mac voice with a slightly higher pitch and livelier pace.
 
 ## Memory & context (0.6.0)
 

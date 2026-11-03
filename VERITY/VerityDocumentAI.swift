@@ -2,8 +2,8 @@ import Foundation
 import PDFKit
 import Combine
 
-/// Uses the existing Verity's intelligence service chat endpoint. No provider key is shipped in VERITY;
-/// authentication and model routing remain on the Verity's intelligence service server.
+/// Uses VERITY's configured chat endpoint. No provider key is shipped in the app;
+/// authentication and model routing remain server-side.
 struct VerityNovaClient {
     static let chatURL = URL(string: "https://nova-v8.vercel.app/api/chat")!
     static let supportedExtensions: Set<String> = [
