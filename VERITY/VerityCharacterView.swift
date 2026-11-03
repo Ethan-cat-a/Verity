@@ -441,7 +441,7 @@ private struct VeritySmileCavityShape: Shape {
             control1: CGPoint(x: rect.minX + rect.width * 0.25, y: rect.maxY * 0.98),
             control2: CGPoint(x: rect.maxX - rect.width * 0.25, y: rect.maxY * 0.98)
         )
-        path.line(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.minY + rect.height * 0.34))
+        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.minY + rect.height * 0.34))
         path.addCurve(
             to: CGPoint(x: rect.minX + rect.width * 0.10, y: rect.minY + rect.height * 0.34),
             control1: CGPoint(x: rect.maxX - rect.width * 0.30, y: rect.minY + rect.height * 0.48),
