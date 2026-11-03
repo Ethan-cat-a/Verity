@@ -67,6 +67,10 @@ Document text is extracted locally on your Mac. VERITY asks before sending extra
 
 Supported text extraction includes PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF through macOS `textutil`. The extracted text is capped at 48,000 characters and files at 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
 
+## Next update
+
+The planned VERITY 0.9.0 work is tracked in [ROADMAP.md](ROADMAP.md).
+
 ## Build from source
 
 Developers can download the source ZIP, open `VERITY.xcodeproj` in Xcode, select the VERITY scheme and **My Mac**, then press **Command-R**. This developer workflow is optional; normal users install the prebuilt DMG above.
