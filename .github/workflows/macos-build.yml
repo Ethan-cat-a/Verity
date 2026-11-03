@@ -3,7 +3,6 @@ name: macOS build
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -28,6 +27,15 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/VERITY-Build" \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Generate the VERITY app icon
+        run: |
+          APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
+          ICONSET="$RUNNER_TEMP/VERITY-AppIcon.iconset"
+          mkdir -p "$APP_PATH/Contents/Resources"
+          swift scripts/GenerateAppIcon.swift "$ICONSET"
+          iconutil -c icns "$ICONSET" -o "$APP_PATH/Contents/Resources/AppIcon.icns"
+          test -s "$APP_PATH/Contents/Resources/AppIcon.icns"
 
       - name: Package the Mac app and installer disk image
         run: |
@@ -59,7 +67,7 @@ jobs:
           retention-days: 30
 
   release:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -72,14 +80,24 @@ jobs:
           name: VERITY-macOS
           path: release-assets
 
-      - name: Publish GitHub Release
+      - name: Publish a permanent GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          TAG="$GITHUB_REF_NAME"
+          DMG="$(find release-assets -name 'VERITY-*-macOS.dmg' -print -quit)"
+          ZIP="$(find release-assets -name 'VERITY-*-macOS.zip' -print -quit)"
+          VERSION="${DMG##*/VERITY-}"
+          VERSION="${VERSION%-macOS.dmg}"
+          TAG="v$VERSION"
+          test -n "$DMG"
+          test -n "$ZIP"
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/* --clobber
+            gh release upload "$TAG" "$DMG" "$ZIP" --clobber
           else
-            gh release create "$TAG" release-assets/* --title "VERITY $TAG" --generate-notes
+            gh release create "$TAG" "$DMG" "$ZIP" \
+              --title "VERITY $TAG" \
+              --target "$GITHUB_SHA" \
+              --notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications."
           fi

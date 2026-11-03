@@ -1,21 +1,26 @@
-# VERITY 0.3.0 — your expressive desktop companion
+# VERITY 0.4.0 — your chaotic desktop companion
 
-VERITY is a native macOS desktop companion built around a glossy, expressive yellow ball. It lives on your desktop, accepts files by drag and drop, and uses **NOVA V8** as its intelligence.
+VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, an unnervingly wide toothy grin, and a collection of expressive reactions. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-The easiest way to install VERITY is the ready-made Mac disk image:
+**[Download VERITY 0.4.0 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.0-macOS.dmg)**
 
-1. Open the **[latest VERITY macOS build](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**.
-2. Select the newest successful run on the `main` branch.
-3. Download the **VERITY-macOS** artifact.
-4. Open the `VERITY-0.3.0-macOS.dmg` file.
-5. Drag **VERITY.app** into the **Applications** shortcut in the disk image.
-6. Eject the disk image and launch VERITY from Applications.
+1. Download and open the DMG.
+2. Drag **VERITY.app** into the **Applications** shortcut.
+3. Eject the disk image and launch VERITY from Applications.
 
-You do not need Xcode, Swift, a compiler, or a development environment to use the compiled app. The build is currently unsigned and not notarized, so macOS may show a first-launch security warning. Only open it when you trust the download.
+The installer includes the app icon and does not require Xcode, Swift, a compiler, or a development environment. The app is currently unsigned and not notarized, so macOS may show a first-launch security warning. Only open it when you trust the download.
 
-A ZIP containing the same compiled app is included in the artifact as an alternative.
+[View all VERITY releases](https://github.com/Ethan-cat-a/Verity/releases).
+
+## Verity's expressions
+
+- The original yellow floating sphere look with a huge, slightly unsettling toothy grin.
+- Two-frame mouth animation: closed grin ↔ open mouth while speaking or eating.
+- Separate shocked, suspicious, angry, sleepy, and manic expressions.
+- Automatic face reactions during document drops, voice conversations, jokes, and errors.
+- Native macOS app icon generated to match Verity.
 
 ## Talk with Verity
 
@@ -34,20 +39,6 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 
 The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Until a key is configured, Verity uses the Mac's built-in speech voice.
 
-## What's included in 0.3.0
-
-- Glossy yellow spherical companion with eye highlights, cheek glow, blinking, and animated expressions.
-- Floating desktop panel and menu-bar controls.
-- Voice and text conversation mode.
-- NOVA V8-powered answers with short conversation history.
-- ElevenLabs Callie voice using the low-latency Flash speech model.
-- Local scripted greetings, jokes, fun facts, and companion reactions.
-- Microphone and speech-recognition permission prompts.
-- Drag-and-drop file handling and a file inspector.
-- Local text preview and document summaries, key points, simple explanations, and document Q&A.
-- A Verity Vault that safely copies files without removing the originals.
-- Explicit confirmation before extracted document text is sent to NOVA V8.
-
 ## NOVA V8 connection
 
 VERITY uses the existing NOVA V8 service:
@@ -61,10 +52,6 @@ The app sends conversation messages to NOVA V8 and keeps provider credentials on
 Document text is extracted locally on your Mac. VERITY asks before sending extracted text and your question to NOVA V8. It does not upload the original file as an attachment.
 
 Supported text extraction includes PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF through macOS `textutil`. The extracted text is capped at 48,000 characters and files at 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
-
-## Voice privacy
-
-The microphone is used only when you activate the talk control. macOS Speech recognition converts your speech into a transcript, which is sent to NOVA V8 for an answer. When an ElevenLabs key is configured, the answer text is sent to ElevenLabs to generate Verity's spoken voice. You can remove the key in Settings at any time.
 
 ## Build from source
 
