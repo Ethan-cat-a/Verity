@@ -39,6 +39,8 @@ final class VerityModel: ObservableObject {
             return
         }
 
+        // Release the previous file's scope before acquiring another one.
+        releaseCurrentFileAccess()
         hasSecurityScopedAccess = fileURL.startAccessingSecurityScopedResource()
         // Keep security-scoped access alive while the file inspector is open.
         currentFile = VerityFile(url: fileURL)
@@ -55,12 +57,17 @@ final class VerityModel: ObservableObject {
     }
 
     func closeFile() {
+        releaseCurrentFileAccess()
+        currentFile = nil
+        statusMessage = "That was tasty. Feed me something else!"
+    }
+
+    /// Balances the security-scoped access acquired for the currently open file.
+    private func releaseCurrentFileAccess() {
         if hasSecurityScopedAccess, let url = currentFile?.url {
             url.stopAccessingSecurityScopedResource()
         }
         hasSecurityScopedAccess = false
-        currentFile = nil
-        statusMessage = "That was tasty. Feed me something else!"
     }
 
     func setStatus(_ message: String) {

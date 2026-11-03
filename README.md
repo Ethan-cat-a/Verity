@@ -1,4 +1,4 @@
-# VERITY 0.2.0 — macOS desktop companion
+# VERITY 0.2.1 — macOS desktop companion
 
 VERITY is a native macOS desktop companion built around a bright yellow spherical smiley character. It lives on your desktop, accepts files by drag and drop, and uses **NOVA V8** as its AI brain.
 
@@ -6,7 +6,7 @@ VERITY is a native macOS desktop companion built around a bright yellow spherica
 
 **[Download the latest source package (.zip)](https://github.com/Ethan-cat-a/Verity/archive/refs/heads/main.zip)**
 
-To download a ready-built Mac app, open the **[VERITY macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**, select the latest successful run, then download its **VERITY-macOS** artifact from the Artifacts section. The build is an unsigned development build.
+To download a ready-built Mac app, open the **[VERITY macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**, select the latest successful run, then download its **VERITY-macOS** artifact from the Artifacts section. Pushing a version tag such as `v0.2.1` also publishes the ZIP as a durable GitHub Release asset. Builds are unsigned and not notarized.
 
 ## Install from the source ZIP
 
@@ -30,7 +30,7 @@ Requires macOS 13 or later and Xcode 15 or later. There are no third-party Swift
 
 This is an unsigned development build, not a notarized public release. macOS may ask you to confirm that you want to open an app downloaded from the internet. Only continue when you trust the source.
 
-## What's included in 0.2.0
+## What's included in 0.2.1
 
 - Floating yellow smiley character with an idle animation.
 - Drag-and-drop file handling and a file inspector.
@@ -39,6 +39,7 @@ This is an unsigned development build, not a notarized public release. macOS may
 - Local file text extraction followed by NOVA V8 analysis.
 - A Verity Vault that safely copies files without removing the originals.
 - Explicit confirmation before extracted document text is sent to NOVA V8.
+- Correct system-level instructions for document analysis and balanced file-access permissions when switching files.
 
 ## NOVA V8 connection
 
@@ -61,6 +62,8 @@ VERITY does not permanently delete files. Keeping a copy places it in **Document
 ## Build from source
 
 Clone the repository, open **VERITY.xcodeproj** in Xcode, select the VERITY scheme and **My Mac**, then press **Command-R**.
+
+To publish a versioned download, update the app version, create and push a matching `vX.Y.Z` Git tag, and let the macOS build workflow publish the compiled ZIP to GitHub Releases. The release remains an unsigned, non-notarized build unless Developer ID signing and notarization credentials are configured separately.
 
 ## License and character notice
 

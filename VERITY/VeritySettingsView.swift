@@ -5,6 +5,10 @@ struct VeritySettingsView: View {
     @State private var isConnected = false
     @State private var isChecking = false
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.1"
+    }
+
     var body: some View {
         Form {
             Section("VERITY intelligence") {
@@ -44,7 +48,7 @@ struct VeritySettingsView: View {
             Section("About") {
                 LabeledContent("Application", value: "VERITY")
                 LabeledContent("AI engine", value: "NOVA V8")
-                LabeledContent("Version", value: "0.2.0")
+                LabeledContent("Version", value: appVersion)
                 Text("VERITY is a native macOS desktop companion. More desktop skills and voice features will be added in later releases.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
