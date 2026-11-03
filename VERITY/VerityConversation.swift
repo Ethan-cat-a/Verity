@@ -31,8 +31,8 @@ struct VerityVoiceOption: Identifiable, Hashable {
     static let all: [VerityVoiceOption] = [
         VerityVoiceOption(
             id: defaultID,
-            title: "Verity · Natural companion",
-            detail: "A smoother, grounded young American male library voice, selected for calm conversational delivery."
+            title: "Verity · Default voice",
+            detail: "A clear, natural American male library voice for Verity's confident character."
         ),
         VerityVoiceOption(
             id: "wWWn96OtTHu1sn8SRGEr",
@@ -350,7 +350,7 @@ final class VerityConversationModel: ObservableObject {
                 VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_200)))
             }
             let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(900))
-            let uncannyAside = Int.random(in: 1...18) == 1
+            let uncannyAside = Int.random(in: 1...24) == 1
             do {
                 let reply = try await self.nova.conversationReply(
                     history: Array(history),
