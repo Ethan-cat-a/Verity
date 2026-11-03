@@ -166,18 +166,17 @@ struct VerityDesktopView: View {
         case .manic, .excited: return "LET'S GOOOO."
         case .sleepy: return "five more minutes..."
         case .eating: return "NOM NOM NOM."
-        case .happy: return "Hey. It's me. It's Verity."
+        case .happy: return "I'm here. Try not to make this complicated."
+        case .eerie: return "..."
         }
     }
 }
 
-/// A transparent, borderless desktop-pet window. Only the ball is visible;
-/// the invisible window follows it around the desktop like a small desktop goose.
+/// A transparent, borderless desktop helper docked in the lower-right corner.
 struct VerityDesktopPetView: View {
     @ObservedObject private var model = VerityModel.shared
     @ObservedObject private var controller = VerityPanelController.shared
     @StateObject private var petLife = VerityPetLifeModel()
-    @StateObject private var conversation = VerityConversationModel()
     @State private var isBreathing = false
     @State private var isChomping = false
     @State private var isHovering = false
@@ -330,7 +329,7 @@ struct VerityFace: View {
             }
             .offset(y: -size * 0.145)
 
-            if mood == .angry || mood == .suspicious {
+            if mood == .angry || mood == .suspicious || mood == .eerie {
                 HStack(spacing: size * 0.21) {
                     brow(isLeft: true)
                     brow(isLeft: false)
