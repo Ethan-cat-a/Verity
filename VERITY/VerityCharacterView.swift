@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 
 /// The full Verity conversation/document surface, opened from the desktop pet.
@@ -9,6 +10,7 @@ struct VerityDesktopView: View {
     @State private var isConversationOpen = false
     @State private var isScreenContextOpen = false
     @State private var isMemoryManagerOpen = false
+    @State private var isCommandPaletteOpen = false
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
 
     var body: some View {
@@ -24,8 +26,12 @@ struct VerityDesktopView: View {
                 VerityFileInspectorView(file: file) { model.closeFile() }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if isConversationOpen {
-                VerityConversationView(model: conversation) { isConversationOpen = false }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                VerityConversationView(
+                    model: conversation,
+                    onClose: { isConversationOpen = false },
+                    onCommandPalette: { isCommandPaletteOpen = true }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
                 characterHome.transition(.opacity)
             }
@@ -55,6 +61,16 @@ struct VerityDesktopView: View {
                 isConversationOpen = true
             }
         }
+        .sheet(isPresented: $isCommandPaletteOpen) {
+            VerityCommandPaletteView(
+                onTalk: { isConversationOpen = true },
+                onStudy: { isScreenContextOpen = true },
+                onMemory: { isMemoryManagerOpen = true },
+                onSettings: {
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                }
+            )
+        }
     }
 
     private var characterHome: some View {
@@ -68,6 +84,17 @@ struct VerityDesktopView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button { isCommandPaletteOpen = true } label: {
+                    Image(systemName: "command")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 27, height: 27)
+                        .background(.black.opacity(0.06), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("k", modifiers: [.command])
+                .help("Open command palette · Command-K")
+
                 Button { VerityPanelController.shared.hide() } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 11, weight: .bold))
@@ -163,12 +190,73 @@ struct VerityDesktopView: View {
         case .shocked: return "Oh! I wasn't expecting that."
         case .suspicious: return "Hmm. Something isn't quite right."
         case .angry: return "Oh dear. That wasn't a good idea."
-        case .manic, .excited: return "YES! I knew I could help!"
+        case .manic, .excited: return "Good. We're making progress."
         case .sleepy: return "A tiny break? Oh, all right. I'm ready now!"
         case .eating: return "Ooh, what's this?"
-        case .happy: return "Hellooooo! I'm Verity, your personal helper friend!"
+        case .happy: return "Hello. What can I help you with?"
         case .eerie: return "..."
         }
+    }
+}
+
+/// A compact keyboard-friendly launcher for VERITY's main workflows.
+private struct VerityCommandPaletteView: View {
+    let onTalk: () -> Void
+    let onStudy: () -> Void
+    let onMemory: () -> Void
+    let onSettings: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("VERITY COMMANDS")
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .tracking(1.5)
+                .foregroundStyle(.secondary)
+            Text("What would you like to do?")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+            command("Talk with Verity", detail: "Ask a question or use your microphone", icon: "waveform", key: "1", action: onTalk)
+            command("Study / understand a window", detail: "Capture one window, review it, then choose a study action", icon: "book.closed", key: "2", action: onStudy)
+            command("Memory & saved sessions", detail: "Review saved notes or resume a conversation", icon: "brain", key: "3", action: onMemory)
+            command("Verity Settings", detail: "Privacy, voice, updates and appearance", icon: "gearshape", key: "4", action: onSettings)
+        }
+        .padding(18)
+        .frame(width: 390)
+        .background(.ultraThinMaterial)
+    }
+
+    private func command(
+        _ title: String,
+        detail: String,
+        icon: String,
+        key: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            dismiss()
+            action()
+        } label: {
+            HStack(spacing: 11) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 30, height: 30)
+                    .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.system(size: 12, weight: .semibold))
+                    Text(detail).font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("⌘\(key)")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+            .padding(9)
+            .background(.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 11))
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(KeyEquivalent(key.first ?? "1"), modifiers: [.command])
     }
 }
 
@@ -181,13 +269,15 @@ struct VerityDesktopPetView: View {
     @State private var isChomping = false
     @State private var isHovering = false
     @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
 
     var body: some View {
         ZStack {
             VerityFace(
-                size: 142,
+                size: quietPresenceEnabled ? 88 : 142,
                 mood: model.isEating ? .eating : model.mood
             )
+            .opacity(quietPresenceEnabled ? 0.88 : 1.0)
             .scaleEffect(model.isEating ? (isChomping ? 1.045 : 0.965) : (isBreathing ? 1.006 : 0.998))
             .offset(y: isBreathing && !model.isEating ? -0.7 : 0.7)
             .rotationEffect(.degrees(model.mood == .eerie ? -2.5 : (model.mood == .angry ? -4 : 0)))

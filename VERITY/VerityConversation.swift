@@ -26,18 +26,18 @@ struct VerityVoiceOption: Identifiable, Hashable {
     let title: String
     let detail: String
 
-    static let defaultID = "wWWn96OtTHu1sn8SRGEr"
+    static let defaultID = "QZ1okeFI43NQd6lXAzQ5"
 
     static let all: [VerityVoiceOption] = [
         VerityVoiceOption(
             id: defaultID,
-            title: "Verity · Expressive helper",
-            detail: "Original youthful adult male library voice with dynamic, clear, character-led delivery."
+            title: "Verity · Natural companion",
+            detail: "A smoother, grounded young American male library voice, selected for calm conversational delivery."
         ),
         VerityVoiceOption(
-            id: "QZ1okeFI43NQd6lXAzQ5",
-            title: "Tate Dalton · Natural male",
-            detail: "A smoother, grounded young American male character voice."
+            id: "wWWn96OtTHu1sn8SRGEr",
+            title: "Hale v3 · Expressive alternate",
+            detail: "A more energetic, expressive male library voice."
         )
     ]
 }
@@ -46,8 +46,8 @@ enum VerityVoiceService {
     static let voicePreferenceKey = "verity.voice.id"
     static let speedPreferenceKey = "verity.voice.speed"
     static let defaultVoiceID = VerityVoiceOption.defaultID
-    static let previousDefaultVoiceID = "QZ1okeFI43NQd6lXAzQ5"
-    private static let voiceMigrationKey = "verity.voice.preference.migrated.0.8.1"
+    static let previousDefaultVoiceID = "wWWn96OtTHu1sn8SRGEr"
+    private static let voiceMigrationKey = "verity.voice.preference.migrated.0.9.0"
 
     static func migrateLegacyVoicePreferenceIfNeeded() {
         let defaults = UserDefaults.standard
@@ -56,6 +56,7 @@ enum VerityVoiceService {
         let saved = defaults.string(forKey: voicePreferenceKey)
         let legacyIDs = [
             previousDefaultVoiceID,
+            "QZ1okeFI43NQd6lXAzQ5",
             "iHiL14jSTiWXy4nzDtbq",
             "B6uUx2p7cRgxseOUyP6P",
             "rLl4PSDTzX3VHL4wjSFI"
@@ -79,15 +80,7 @@ enum VerityVoiceService {
         let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_64"
         guard let url = URL(string: endpoint) else { throw VerityVoiceError.invalidURL }
 
-        let direction: String
-        switch mood {
-        case .angry: direction = "[frustrated]"
-        case .shocked: direction = "[surprised]"
-        case .suspicious: direction = "[curious]"
-        case .eerie: direction = "[whispers]"
-        case .manic, .excited: direction = "[excited]"
-        default: direction = "[cheerfully]"
-        }
+        let spokenText = String(text.prefix(1_760))
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -96,9 +89,9 @@ enum VerityVoiceService {
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
-            text: "\(direction) \(String(text.prefix(1_760)))",
+            text: spokenText,
             model_id: "eleven_v4",
-            voice_settings: .init(stability: 0.34, similarity_boost: 0.84)
+            voice_settings: .init(stability: 0.72, similarity_boost: 0.84)
         ))
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -434,7 +427,7 @@ final class VerityConversationModel: ObservableObject {
         if prompt.contains("joke") || prompt.contains("fun fact") ||
             prompt.contains("make me laugh") || answer.contains("haha") ||
             answer.contains("lol") {
-            return .manic
+            return nil
         }
         if prompt.contains("wrong") || prompt.contains("you suck") ||
             prompt.contains("angry") || prompt.contains("mad") {
@@ -492,7 +485,7 @@ final class VerityConversationModel: ObservableObject {
                 guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
 
                 pendingAudioTask = Task {
-                    try await VerityVoiceService.synthesize(firstChunk, apiKey: apiKey, mood: reaction)
+                    try await VerityVoiceService.synthesize(firstChunk, apiKey: apiKey)
                 }
 
                 for index in chunks.indices {
@@ -525,8 +518,8 @@ final class VerityConversationModel: ObservableObject {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = Self.veritySystemVoice()
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.06
-                utterance.pitchMultiplier = 1.12
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+                utterance.pitchMultiplier = 1.02
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                     try? await Task.sleep(nanoseconds: 80_000_000)
@@ -540,8 +533,8 @@ final class VerityConversationModel: ObservableObject {
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = Self.veritySystemVoice()
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.06
-            utterance.pitchMultiplier = 1.12
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.98
+            utterance.pitchMultiplier = 1.02
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                 try? await Task.sleep(nanoseconds: 120_000_000)
@@ -606,22 +599,22 @@ private enum VerityScriptedReplies {
         if ["hi", "hey", "hello", "yo", "hiya"].contains(text) ||
             text.hasPrefix("hello ") || text.hasPrefix("hey ") {
             return [
-                "Hellooooo! I'm Verity, your personal helper friend! Ask me anything, I know everything! ...Well, almost.",
-                "Hello there! I'm Verity. I've got lots of ideas. What are we doing today?",
-                "Hellooooo! Good to see you. What can I help you with?"
+                "Hello, I'm Verity. What can I help you with today?",
+                "Hi there. I'm ready when you are. What are we working on?",
+                "Hello! Show me what you're working on and we'll take it one step at a time."
             ].randomElement()
         }
         if text.contains("good morning") {
-            return "Good morning! Ready when you are. What are we figuring out today?"
+            return "Good morning. Ready when you are. What would you like to work on?"
         }
         if text.contains("good night") || text == "goodnight" {
             return "Good night! I'll be right here whenever you need a hand."
         }
         if text.contains("thank") {
-            return "You're welcome! That's what I'm here for."
+            return "You're welcome. Glad I could help."
         }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity, your personal helper friend! Ask me anything. I know a lot, and I'll do my best to help."
+            return "I'm Verity, your personal helper. I can help you understand things, work through problems, and make progress on what you're doing."
         }
         if text.contains("what can you do") || text == "help" {
             return "I can answer questions, read supported documents, summarize files, find key details, and help you work through problems. Just ask!"
@@ -633,8 +626,7 @@ private enum VerityScriptedReplies {
             return "Here's a fun fact: an octopus has three hearts. Two of them stop beating when it swims. Isn't that amazing?"
         }
         if text == "dance" || text.contains("do a dance") {
-            VerityModel.shared.setMood(.excited)
-            return "Oh, absolutely! One tiny victory dance. Ta-da!"
+            return "I can manage a tiny wiggle. There we go."
         }
         if text == "bye" || text == "goodbye" || text == "see you" {
             return "See you later! I'll be here when you need your helper friend."
@@ -646,6 +638,7 @@ private enum VerityScriptedReplies {
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
     let onClose: () -> Void
+    let onCommandPalette: () -> Void
     @State private var draft = ""
 
     var body: some View {
@@ -660,6 +653,15 @@ struct VerityConversationView: View {
                 .buttonStyle(.plain)
                 VerityFace(size: 48, mood: VerityModel.shared.mood)
                     .shadow(color: .orange.opacity(0.16), radius: 7, y: 3)
+                Button(action: onCommandPalette) {
+                    Image(systemName: "command")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 27, height: 27)
+                        .background(.black.opacity(0.06), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("k", modifiers: [.command])
+                .help("Open command palette · Command-K")
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Talk with Verity").font(.system(size: 15, weight: .bold, design: .rounded))
                     Text(model.isListening ? "I'm listening…" : model.isSpeaking ? "Verity is talking…" : model.voiceStatus)
@@ -688,7 +690,7 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Hellooooo! I'm Verity, your personal helper friend!").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Hello. I'm Verity, your personal helper.").font(.system(size: 16, weight: .bold, design: .rounded))
                             Text("Ask me anything, or drop in a supported document. I'll help you find what you need.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }

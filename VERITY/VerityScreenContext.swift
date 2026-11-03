@@ -7,6 +7,9 @@ import Combine
 enum VerityPrivacyPreferences {
     static let screenContextEnabledKey = "verity.privacy.screenContextEnabled"
     static let excludedAppsKey = "verity.privacy.excludedApps"
+    static let allowedAppsKey = "verity.privacy.allowedApps"
+    static let blindModeEnabledKey = "verity.privacy.blindModeEnabled"
+    static let quietPresenceEnabledKey = "verity.presence.quietMode"
 }
 
 struct VerityScreenWindow: Identifiable {
@@ -28,9 +31,13 @@ private enum VerityScreenCaptureService {
         "passwords", "keychain access", "1password", "bitwarden", "lastpass", "dashlane", "keeper"
     ]
 
-    static func availableWindows(excludingAppNames: Set<String>) async throws -> [VerityScreenWindow] {
+    static func availableWindows(
+        excludingAppNames: Set<String>,
+        allowedAppNames: Set<String>
+    ) async throws -> [VerityScreenWindow] {
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
         let excluded = defaultExcludedNames.union(excludingAppNames.map { $0.lowercased() })
+        let allowed = Set(allowedAppNames.map { $0.lowercased() }.filter { !$0.isEmpty })
         return content.windows.compactMap { window in
             guard window.isOnScreen,
                   window.owningApplication?.processID != ProcessInfo.processInfo.processIdentifier,
@@ -43,6 +50,7 @@ private enum VerityScreenCaptureService {
             let bundleID = window.owningApplication?.bundleIdentifier.lowercased() ?? ""
             let searchableName = (appName + " " + bundleID).lowercased()
             guard !excluded.contains(where: { !$0.isEmpty && searchableName.contains($0) }) else { return nil }
+            guard allowed.isEmpty || allowed.contains(where: { searchableName.contains($0) }) else { return nil }
             return VerityScreenWindow(window: window, applicationName: appName, title: title)
         }
         .sorted {
@@ -102,14 +110,22 @@ final class VerityScreenContextModel: ObservableObject {
     @Published var isCapturing = false
     @Published var isAsking = false
 
-    func refreshWindows(excludingAppNames: Set<String>) async {
+    func refreshWindows(excludingAppNames: Set<String>, allowedAppNames: Set<String> = []) async {
+        guard !UserDefaults.standard.bool(forKey: VerityPrivacyPreferences.blindModeEnabledKey) else {
+            clearLocalScreenData()
+            status = "Blind Mode is on. Screen reading is paused."
+            return
+        }
         guard !isLoadingWindows else { return }
         isLoadingWindows = true
         errorMessage = nil
         status = "Finding visible windows…"
         defer { isLoadingWindows = false }
         do {
-            windows = try await VerityScreenCaptureService.availableWindows(excludingAppNames: excludingAppNames)
+            windows = try await VerityScreenCaptureService.availableWindows(
+                excludingAppNames: excludingAppNames,
+                allowedAppNames: allowedAppNames
+            )
             if let selectedWindowID, !windows.contains(where: { $0.id == selectedWindowID }) {
                 self.selectedWindowID = nil
             }
@@ -123,7 +139,22 @@ final class VerityScreenContextModel: ObservableObject {
         }
     }
 
+    func clearLocalScreenData() {
+        previewImage = nil
+        extractedText = ""
+        capturedWindowTitle = ""
+        answer = ""
+        windows = []
+        selectedWindowID = nil
+        errorMessage = nil
+    }
+
     func captureSelected() async {
+        guard !UserDefaults.standard.bool(forKey: VerityPrivacyPreferences.blindModeEnabledKey) else {
+            clearLocalScreenData()
+            status = "Blind Mode is on. No screen content was captured."
+            return
+        }
         guard !isCapturing,
               let selectedWindowID,
               let entry = windows.first(where: { $0.id == selectedWindowID }) else { return }
@@ -155,7 +186,8 @@ final class VerityScreenContextModel: ObservableObject {
     func ask(question: String) {
         let prompt = question.trimmingCharacters(in: .whitespacesAndNewlines)
         let context = extractedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !isAsking, !prompt.isEmpty, !context.isEmpty else { return }
+        guard !UserDefaults.standard.bool(forKey: VerityPrivacyPreferences.blindModeEnabledKey),
+              !isAsking, !prompt.isEmpty, !context.isEmpty else { return }
 
         isAsking = true
         errorMessage = nil
@@ -180,8 +212,11 @@ final class VerityScreenContextModel: ObservableObject {
 struct VerityScreenContextSheet: View {
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
     @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
+    @AppStorage(VerityPrivacyPreferences.allowedAppsKey) private var allowedAppsRaw = ""
+    @AppStorage(VerityPrivacyPreferences.blindModeEnabledKey) private var blindModeEnabled = false
     @StateObject private var model = VerityScreenContextModel()
     @State private var question = "Explain what I'm looking at and what I should do next."
+    @State private var focusedSelection = ""
     @State private var isConfirmingSend = false
     @Environment(\.dismiss) private var dismiss
 
@@ -189,6 +224,29 @@ struct VerityScreenContextSheet: View {
         Set(excludedAppsRaw.split(separator: ",").map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         })
+    }
+
+    private var allowedAppNames: Set<String> {
+        Set(allowedAppsRaw.split(separator: ",").map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        }.filter { !$0.isEmpty })
+    }
+
+    private func prepareStudyAction(_ prompt: String) {
+        var prepared = prompt
+        let focus = focusedSelection.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !focus.isEmpty {
+            prepared += "\n\nUSER-SELECTED FOCUS (prioritize this text):\n\(focus)"
+        }
+        question = prepared
+        isConfirmingSend = true
+    }
+
+    private func copyAnswer() {
+        guard !model.answer.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(model.answer, forType: .string)
+        model.status = "Answer copied."
     }
 
     var body: some View {
@@ -212,9 +270,24 @@ struct VerityScreenContextSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.blue.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
 
+            Toggle("Blind Mode · pause all screen reading", isOn: $blindModeEnabled)
+            Text("When enabled, Verity clears the current capture and will not list, capture, or send screen content.")
+                .font(.caption).foregroundStyle(.secondary)
+
             Toggle("Allow screen understanding", isOn: $screenContextEnabled)
 
-            if screenContextEnabled {
+            if blindModeEnabled {
+                Label("Blind Mode is active. Screen access is paused.", systemImage: "eye.slash.fill")
+                    .font(.callout)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+            } else if screenContextEnabled {
+                TextField("Allowed apps (optional; leave blank for all eligible apps)", text: $allowedAppsRaw)
+                    .textFieldStyle(.roundedBorder)
+                Text("Only windows from these apps will be listed. Your excluded-app list always takes priority.")
+                    .font(.caption).foregroundStyle(.secondary)
+
                 HStack(spacing: 8) {
                     Picker("Window", selection: $model.selectedWindowID) {
                         ForEach(model.windows) { window in
@@ -223,7 +296,12 @@ struct VerityScreenContextSheet: View {
                     }
                     .frame(maxWidth: .infinity)
                     Button(model.isLoadingWindows ? "Loading…" : "Refresh") {
-                        Task { await model.refreshWindows(excludingAppNames: excludedAppNames) }
+                        Task {
+                            await model.refreshWindows(
+                                excludingAppNames: excludedAppNames,
+                                allowedAppNames: allowedAppNames
+                            )
+                        }
                     }
                     .disabled(model.isLoadingWindows)
                     Button(model.isCapturing ? "Capturing…" : "Capture") {
@@ -255,6 +333,42 @@ struct VerityScreenContextSheet: View {
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black.opacity(0.10), lineWidth: 1))
                 }
 
+                TextField("Paste a sentence, equation, or paragraph to focus on", text: $focusedSelection, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(1...3)
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
+                    Button("Screen → quiz") {
+                        prepareStudyAction("""
+                        Create a 6-question practice quiz using only the reviewed screen content. Start with core understanding, then increase difficulty. Use clear questions and plausible answer choices. Do not reveal the answers yet. After I respond, mark my answers and explain any misconceptions.
+                        """)
+                    }
+                    Button("Make a study set") {
+                        prepareStudyAction("""
+                        Turn the reviewed content into a compact study set: a clear summary, 8 concise front/back flashcards, and 5 retrieval-practice questions. Preserve important definitions, formulas, examples, and qualifications. Do not invent missing information.
+                        """)
+                    }
+                    Button("Explain focus") {
+                        prepareStudyAction("""
+                        Explain the user-selected focus clearly and accurately. Break down unfamiliar terms, show the reasoning in manageable steps, and use only the reviewed screen content plus well-established background knowledge. If a diagram is described only partially by OCR, say what cannot be determined.
+                        """)
+                    }
+                    .disabled(focusedSelection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Socratic guidance") {
+                        prepareStudyAction("""
+                        Tutor me Socratically using only the reviewed content. Do not give the final answer or complete the work for me. Ask one focused guiding question at a time, give a small hint only when needed, and adapt to my response.
+                        """)
+                    }
+                    Button("Practice test") {
+                        prepareStudyAction("""
+                        Create an 8-question practice test from the reviewed content, suitable for a 15-minute attempt. Mix question types where appropriate, keep the answer key hidden, and do not reveal solutions until I submit my answers. When I submit them, score each concept and explain mistakes.
+                        """)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .disabled(model.isAsking || model.extractedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
                 TextField("Ask Verity about this window…", text: $question, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...3)
@@ -271,13 +385,21 @@ struct VerityScreenContextSheet: View {
                     ProgressView("Thinking…").controlSize(.small)
                 }
                 if !model.answer.isEmpty {
+                    HStack {
+                        Text("VERITY'S RESPONSE")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Copy") { copyAnswer() }
+                            .buttonStyle(.borderless)
+                    }
                     ScrollView {
                         Text(model.answer)
                             .font(.system(size: 12))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
                     }
-                    .frame(minHeight: 70, maxHeight: 120)
+                    .frame(minHeight: 70, maxHeight: 160)
                     .padding(10)
                     .background(.black.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
                 }
@@ -293,8 +415,55 @@ struct VerityScreenContextSheet: View {
         .padding(18)
         .frame(minWidth: 680, minHeight: 690)
         .task {
-            if screenContextEnabled {
-                await model.refreshWindows(excludingAppNames: excludedAppNames)
+            if screenContextEnabled && !blindModeEnabled {
+                await model.refreshWindows(
+                    excludingAppNames: excludedAppNames,
+                    allowedAppNames: allowedAppNames
+                )
+            }
+        }
+        .onChange(of: blindModeEnabled) { enabled in
+            if enabled {
+                model.clearLocalScreenData()
+                model.status = "Blind Mode is on. Screen reading is paused."
+            } else if screenContextEnabled {
+                Task {
+                    await model.refreshWindows(
+                        excludingAppNames: excludedAppNames,
+                        allowedAppNames: allowedAppNames
+                    )
+                }
+            }
+        }
+        .onChange(of: screenContextEnabled) { enabled in
+            if !enabled {
+                model.clearLocalScreenData()
+                model.status = "Screen understanding is off."
+            } else if !blindModeEnabled {
+                Task {
+                    await model.refreshWindows(
+                        excludingAppNames: excludedAppNames,
+                        allowedAppNames: allowedAppNames
+                    )
+                }
+            }
+        }
+        .onChange(of: allowedAppsRaw) { _ in
+            guard screenContextEnabled && !blindModeEnabled else { return }
+            Task {
+                await model.refreshWindows(
+                    excludingAppNames: excludedAppNames,
+                    allowedAppNames: allowedAppNames
+                )
+            }
+        }
+        .onChange(of: excludedAppsRaw) { _ in
+            guard screenContextEnabled && !blindModeEnabled else { return }
+            Task {
+                await model.refreshWindows(
+                    excludingAppNames: excludedAppNames,
+                    allowedAppNames: allowedAppNames
+                )
             }
         }
         .alert("Send selected screen text to Verity?", isPresented: $isConfirmingSend) {

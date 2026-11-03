@@ -15,12 +15,15 @@ struct VeritySettingsView: View {
     @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
     @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
+    @AppStorage(VerityPrivacyPreferences.allowedAppsKey) private var allowedAppsRaw = ""
+    @AppStorage(VerityPrivacyPreferences.blindModeEnabledKey) private var blindModeEnabled = false
+    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
     @AppStorage(VerityUpdateChecker.automaticInstallKey) private var automaticUpdateInstall = true
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.2"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.0"
     }
 
     var body: some View {
@@ -44,6 +47,9 @@ struct VeritySettingsView: View {
                 Toggle("Let Verity snack from Trash", isOn: $trashSnacksEnabled)
                 Text("Verity stays docked in the lower-right corner, like a desktop helper. Click once to open the assistant; it does not wander or respond to dragging.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Quiet presence · shrink the desktop character", isOn: $quietPresenceEnabled)
+                Text("Makes Verity smaller and visually quieter while you work. It does not start monitoring your activity.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle("Occasional unsettling idle stare", isOn: $eerieIdleEnabled)
                 Text("At unpredictable intervals, while otherwise idle, Verity briefly holds a horror-style expression for about 2–4 seconds, then returns to his normal smile. He does not speak or move during it.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -52,11 +58,16 @@ struct VeritySettingsView: View {
 
             Section("Trust Center") {
                 Toggle("Allow screen understanding", isOn: $screenContextEnabled)
-                Text("Off by default. When enabled, Verity can capture one window only after you choose it and press Capture. Text is read locally, shown for review, and sent only after you confirm. No background screen recording.")
+                Toggle("Blind Mode · block all screen reading", isOn: $blindModeEnabled)
+                Text("Blind Mode clears the current screen capture and prevents window listing, capture, and sending until you switch it off. Screen understanding otherwise remains manual: choose a window, capture once, review the text, then confirm before sending.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextField("Allowed apps (optional, comma-separated)", text: $allowedAppsRaw)
+                    .textFieldStyle(.roundedBorder)
+                Text("When this list is not empty, only matching apps are shown. Leave it blank to allow all eligible apps.")
                     .font(.caption).foregroundStyle(.secondary)
                 TextField("Excluded apps (comma-separated)", text: $excludedAppsRaw)
                     .textFieldStyle(.roundedBorder)
-                Text("Password and keychain apps are excluded by default. Add any other app names you never want to appear in the capture list.")
+                Text("Excluded apps always take priority. Password and keychain apps are blocked by default.")
                     .font(.caption).foregroundStyle(.secondary)
                 Label("The screenshot stays on this Mac. Only the OCR text you review is sent after confirmation.", systemImage: "hand.raised.fill")
                     .font(.callout)
@@ -110,7 +121,7 @@ struct VeritySettingsView: View {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Verity character voice").font(.system(size: 13, weight: .semibold))
-                        Text("Bright, expressive helper voice with character-led delivery").font(.caption).foregroundStyle(.secondary)
+                        Text("Warm, natural male voice with calmer conversational delivery").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "key")
@@ -121,9 +132,9 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
-                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original expressive male character voice.")
+                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original natural male character voice.")
                     .font(.caption).foregroundStyle(.secondary)
-                Text("Speech engine: Eleven v4 · expressive delivery with phrase-by-phrase pre-generation.")
+                Text("Speech engine: Eleven v4 · neutral delivery with phrase-by-phrase pre-generation.")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Preview selected voice") {
                     Task { await previewSelectedVoice() }
@@ -208,7 +219,7 @@ struct VeritySettingsView: View {
                 voiceMessage = "Add an ElevenLabs API key before previewing this voice."
                 return
             }
-            let sample = "Hey! I'm Verity, your personal helper friend. Ask me anything! I can help you with questions, documents, and all sorts of things. Go on, what do you need?"
+            let sample = "Hello, I'm Verity. I'm here to help you work through things clearly and calmly. Show me what you're working on, and we'll take it one step at a time."
             let audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
             previewPlayer?.stop()
             let player = try AVAudioPlayer(data: audio)

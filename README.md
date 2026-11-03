@@ -1,4 +1,4 @@
-# VERITY 0.8.2 — desktop helper
+# VERITY 0.9.0 — desktop helper
 
 VERITY is a native macOS desktop assistant built around a bright yellow smiley-sphere character: glossy shading, simple black oval eyes, and a curved smile. Its normal personality is cheerful and helpful; the horror expression is a separate, brief, occasional idle event.
 
@@ -23,7 +23,9 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 
 - Verity is docked in the lower-right corner of the main display. It does not roam, roll, or move around freely.
 - Click the character once to open the full assistant and document window. Hovering displays a compact "NEED A HAND?" prompt; right-click opens helper options.
-- The normal character returns to the bright yellow, glossy smiley-sphere design, with two plain black oval eyes and a simple curved smile.
+- The assistant home includes a command palette. Press Command-K while the VERITY window is active, or use its command icon to open the main workflows.
+- **Quiet presence** shrinks the desktop character when you want less visual distraction. It does not monitor activity or detect whether you are focused.
+- The normal character keeps the bright yellow smiley-sphere design, with two plain black oval eyes and a simple curved smile. Its everyday personality and speech are calm, warm, and helpful.
 - The large toothy grin, uneven stare, and raised brows are reserved for a brief horror expression.
 - While otherwise idle, the horror expression may happen at random intervals (roughly every 52–138 seconds) and lasts about 2.4–3.6 seconds before Verity returns to his normal face.
 - Disable **Occasional unsettling idle stare** in Settings to turn this off.
@@ -45,7 +47,19 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-The key is stored in macOS Keychain, not in source code, preferences, or GitHub. The default is an expressive young-adult male library voice selected for lively, character-led delivery. Speech uses Eleven v4 and is prepared phrase by phrase so the first part can play while the next phrase is being generated. The voice is an original library voice, not an imitation or clone of Verity's credited performer. Without a key, VERITY selects the best available enhanced English male system voice on the Mac.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. The default is a smoother, grounded male library voice selected for natural conversational delivery. Speech uses Eleven v4 with calmer synthesis settings and phrase-by-phrase preparation. The library voice is not an imitation or clone of Verity's credited performer. Without a key, VERITY selects the best available enhanced English male system voice on the Mac.
+
+### Study tools
+
+After selecting a visible window and pressing **Capture**, VERITY reads text locally. You can review and redact it, then explicitly confirm before sending it for help. The study actions include:
+
+- **Screen → quiz** — generates practice questions from the reviewed material.
+- **Make a study set** — asks for a summary, flashcards, and retrieval-practice questions.
+- **Socratic guidance** — prompts your reasoning instead of immediately giving the final answer.
+- **Practice test** — drafts a timed-format test and keeps the answer key hidden until you submit your responses.
+- **Explain focus** — explains a passage or equation you paste into the focus field.
+
+These first study actions return text in the response panel. Persistent spaced-repetition scheduling, image-occlusion cards, an interactive countdown/scoring interface, and automatic YouTube recommendations are not included yet.
 
 ### Quick helper actions
 
@@ -59,9 +73,9 @@ Memories are stored as an encrypted local archive in the user's Application Supp
 
 Use **Save session** in chat to snapshot the last part of a conversation. Resume or delete saved sessions from the Sessions tab. A snapshot contains the selected chat messages and a simple goal/next-step note; it does not restore other applications or unsaved files.
 
-## Trust Center and screen understanding (0.5.0)
+## Trust Center and screen understanding
 
-Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to Verity's connected intelligence service after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; additional app names can be added in Settings.
+Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to Verity's connected intelligence service after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; Settings also supports an optional allow-list. **Blind Mode** clears the active capture and blocks window listing, capture, and sending until disabled.
 
 ## Automatic updates
 
@@ -75,7 +89,7 @@ Supported text extraction includes PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML
 
 ## Next update
 
-The planned VERITY 0.9.0 work is tracked in [ROADMAP.md](ROADMAP.md).
+The remaining VERITY roadmap is tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Build from source
 
