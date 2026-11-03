@@ -57,33 +57,16 @@ func drawIcon(size: Int) -> Data {
     rightEye.fill()
 
     let mouth = NSBezierPath()
-    mouth.move(to: NSPoint(x: s * 0.19, y: s * 0.475))
+    mouth.move(to: NSPoint(x: s * 0.245, y: s * 0.475))
     mouth.curve(
-        to: NSPoint(x: s * 0.81, y: s * 0.475),
-        controlPoint1: NSPoint(x: s * 0.32, y: s * 0.205),
-        controlPoint2: NSPoint(x: s * 0.68, y: s * 0.205)
+        to: NSPoint(x: s * 0.755, y: s * 0.475),
+        controlPoint1: NSPoint(x: s * 0.35, y: s * 0.245),
+        controlPoint2: NSPoint(x: s * 0.65, y: s * 0.245)
     )
-    mouth.line(to: NSPoint(x: s * 0.76, y: s * 0.49))
-    mouth.curve(
-        to: NSPoint(x: s * 0.24, y: s * 0.49),
-        controlPoint1: NSPoint(x: s * 0.64, y: s * 0.30),
-        controlPoint2: NSPoint(x: s * 0.36, y: s * 0.30)
-    )
-    mouth.close()
-    NSColor(calibratedWhite: 0.015, alpha: 1).setFill()
-    mouth.fill()
-
-    NSColor(calibratedRed: 1.0, green: 0.93, blue: 0.70, alpha: 1).setFill()
-    for index in 0..<8 {
-        let x = s * (0.255 + CGFloat(index) * 0.070)
-        let width = s * (index == 3 || index == 4 ? 0.068 : 0.060)
-        let tooth = NSBezierPath(
-            roundedRect: NSRect(x: x, y: s * 0.435, width: width, height: s * 0.070),
-            xRadius: s * 0.012,
-            yRadius: s * 0.012
-        )
-        tooth.fill()
-    }
+    mouth.lineWidth = max(1.4, s * 0.025)
+    mouth.lineCapStyle = .round
+    NSColor(calibratedWhite: 0.015, alpha: 1).setStroke()
+    mouth.stroke()
 
     context.flushGraphics()
     NSGraphicsContext.restoreGraphicsState()
