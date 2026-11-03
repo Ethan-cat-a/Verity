@@ -11,7 +11,7 @@ final class VerityPanelController {
 
     func show() {
         if panel == nil {
-            let size = NSSize(width: 330, height: 420)
+            let size = NSSize(width: 380, height: 560)
             let newPanel = VerityPanel(
                 contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.borderless, .nonactivatingPanel],

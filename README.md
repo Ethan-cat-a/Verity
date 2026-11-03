@@ -1,69 +1,74 @@
-# VERITY 0.2.1 — macOS desktop companion
+# VERITY 0.3.0 — your expressive desktop companion
 
-VERITY is a native macOS desktop companion built around a bright yellow spherical smiley character. It lives on your desktop, accepts files by drag and drop, and uses **NOVA V8** as its AI brain.
+VERITY is a native macOS desktop companion built around a glossy, expressive yellow ball. It lives on your desktop, accepts files by drag and drop, and uses **NOVA V8** as its intelligence.
 
-## Download VERITY
+## Download VERITY — no Xcode required
 
-**[Download the latest source package (.zip)](https://github.com/Ethan-cat-a/Verity/archive/refs/heads/main.zip)**
+The easiest way to install VERITY is the ready-made Mac disk image:
 
-To download a ready-built Mac app, open the **[VERITY macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**, select the latest successful run, then download its **VERITY-macOS** artifact from the Artifacts section. Pushing a version tag such as `v0.2.1` also publishes the ZIP as a durable GitHub Release asset. Builds are unsigned and not notarized.
+1. Open the **[latest VERITY macOS build](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml)**.
+2. Select the newest successful run on the `main` branch.
+3. Download the **VERITY-macOS** artifact.
+4. Open the `VERITY-0.3.0-macOS.dmg` file.
+5. Drag **VERITY.app** into the **Applications** shortcut in the disk image.
+6. Eject the disk image and launch VERITY from Applications.
 
-## Install from the source ZIP
+You do not need Xcode, Swift, a compiler, or a development environment to use the compiled app. The build is currently unsigned and not notarized, so macOS may show a first-launch security warning. Only open it when you trust the download.
 
-1. Download the source ZIP using the link above.
-2. Double-click the ZIP to extract it.
-3. Open the extracted **VERITY** folder.
-4. Double-click **VERITY.xcodeproj** to open it in Xcode.
-5. In Xcode, choose the **VERITY** scheme and **My Mac** as the run destination.
-6. Press **Command-R** to build and launch VERITY.
-7. The floating yellow character appears on your desktop. You can also open it from the smiley icon in the menu bar.
+A ZIP containing the same compiled app is included in the artifact as an alternative.
 
-Requires macOS 13 or later and Xcode 15 or later. There are no third-party Swift package dependencies.
+## Talk with Verity
 
-## Install the prebuilt app artifact
+- Press **Talk with Verity** on the floating character.
+- Allow microphone and speech recognition access when macOS asks.
+- Tap the microphone, speak naturally, then tap it again to finish.
+- NOVA V8 creates the reply; ElevenLabs speaks it in Verity's selected Callie voice.
 
-1. Open the [macOS build workflow](https://github.com/Ethan-cat-a/Verity/actions/workflows/macos-build.yml).
-2. Select the newest run marked **Success**.
-3. Download the **VERITY-macOS** artifact ZIP near the bottom of the run page.
-4. Double-click the downloaded ZIP to extract **VERITY.app**.
-5. Drag **VERITY.app** into your Applications folder and launch it.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses; ordinary questions are sent to NOVA V8.
 
-This is an unsigned development build, not a notarized public release. macOS may ask you to confirm that you want to open an app downloaded from the internet. Only continue when you trust the source.
+### Configure the Verity voice
 
-## What's included in 0.2.1
+1. Open the menu-bar smiley and choose **Settings**.
+2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
+3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-- Floating yellow smiley character with an idle animation.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Until a key is configured, Verity uses the Mac's built-in speech voice.
+
+## What's included in 0.3.0
+
+- Glossy yellow spherical companion with eye highlights, cheek glow, blinking, and animated expressions.
+- Floating desktop panel and menu-bar controls.
+- Voice and text conversation mode.
+- NOVA V8-powered answers with short conversation history.
+- ElevenLabs Callie voice using the low-latency Flash speech model.
+- Local scripted greetings, jokes, fun facts, and companion reactions.
+- Microphone and speech-recognition permission prompts.
 - Drag-and-drop file handling and a file inspector.
-- Local text preview for supported formats.
-- Document summaries, key-point extraction, simple explanations, and custom document questions.
-- Local file text extraction followed by NOVA V8 analysis.
+- Local text preview and document summaries, key points, simple explanations, and document Q&A.
 - A Verity Vault that safely copies files without removing the originals.
 - Explicit confirmation before extracted document text is sent to NOVA V8.
-- Correct system-level instructions for document analysis and balanced file-access permissions when switching files.
 
 ## NOVA V8 connection
 
-VERITY is wired to the existing NOVA V8 service:
+VERITY uses the existing NOVA V8 service:
 
 https://nova-v8.vercel.app/api/chat
 
-The app uses the same **messages** request contract as NOVA Copilot. It checks the service's health endpoint on launch and sends document questions through the NOVA V8 chat API. No NOVA API key is embedded in the app; provider credentials remain on the server.
+The app sends conversation messages to NOVA V8 and keeps provider credentials on the server. No NOVA API key is embedded in VERITY.
 
-To check the connection, open the menu-bar smiley → **Settings** → **Test connection**. When the status says **NOVA V8 connected**, Verity's document assistant is ready.
+## Document privacy
 
-## Document privacy and supported formats
+Document text is extracted locally on your Mac. VERITY asks before sending extracted text and your question to NOVA V8. It does not upload the original file as an attachment.
 
-VERITY extracts text on your Mac before it contacts NOVA V8. Dropping a file does not send it anywhere. The app asks for confirmation before sending the extracted text and your question to the NOVA V8 service. The original file itself is not uploaded as an attachment.
+Supported text extraction includes PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF through macOS `textutil`. The extracted text is capped at 48,000 characters and files at 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
 
-Current text extraction supports PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF files through macOS **textutil**. The extracted text is capped at 48,000 characters and files are limited to 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
+## Voice privacy
 
-VERITY does not permanently delete files. Keeping a copy places it in **Documents/Verity Vault**. Moving an item to Trash requires an explicit confirmation.
+The microphone is used only when you activate the talk control. macOS Speech recognition converts your speech into a transcript, which is sent to NOVA V8 for an answer. When an ElevenLabs key is configured, the answer text is sent to ElevenLabs to generate Verity's spoken voice. You can remove the key in Settings at any time.
 
 ## Build from source
 
-Clone the repository, open **VERITY.xcodeproj** in Xcode, select the VERITY scheme and **My Mac**, then press **Command-R**.
-
-To publish a versioned download, update the app version, create and push a matching `vX.Y.Z` Git tag, and let the macOS build workflow publish the compiled ZIP to GitHub Releases. The release remains an unsigned, non-notarized build unless Developer ID signing and notarization credentials are configured separately.
+Developers can download the source ZIP, open `VERITY.xcodeproj` in Xcode, select the VERITY scheme and **My Mac**, then press **Command-R**. This developer workflow is optional; normal users install the prebuilt DMG above.
 
 ## License and character notice
 

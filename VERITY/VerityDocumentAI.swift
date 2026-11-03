@@ -29,6 +29,58 @@ struct VerityNovaClient {
         return try JSONDecoder().decode(NovaHealthResponse.self, from: data)
     }
 
+    func conversationReply(history: [VerityChatTurn]) async throws -> String {
+        let systemMessage = NovaAPIMessage(
+            role: "system",
+            content: """
+            You are VERITY, a cheerful, expressive yellow ball companion who lives on the user's Mac.
+            NOVA V8 is your intelligence. You are not NOVA; you are Verity, and NOVA V8 powers your thinking.
+            Be warm, playful, curious, and genuinely helpful. Speak naturally, as if talking aloud to a friend.
+            Keep most spoken replies to 1-4 short sentences. Avoid markdown, tables, long lists, and stage directions.
+            Use light humour when it fits, but do not force jokes. Never pretend to see the user's screen or files.
+            Answer accurately and explain uncertainty rather than inventing details.
+            """
+        )
+        let turns = history.suffix(12).map { NovaAPIMessage(role: $0.role, content: $0.content) }
+        var request = URLRequest(url: Self.chatURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("text/plain, */*", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 90
+        request.httpBody = try JSONEncoder().encode(NovaChatRequest(messages: [systemMessage] + turns))
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw VerityNovaError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let detail = String(data: data, encoding: .utf8) ?? "The NOVA V8 backend returned an error."
+            throw VerityNovaError.httpStatus(http.statusCode, detail)
+        }
+        let answer = Self.extractAssistantText(from: data)
+        guard !answer.isEmpty else { throw VerityNovaError.emptyAnswer }
+        return answer
+    }
+
+    private static func extractAssistantText(from data: Data) -> String {
+        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            for key in ["content", "response", "text", "output"] {
+                if let value = object[key] as? String, !value.isEmpty {
+                    return value.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            if let message = object["message"] as? [String: Any],
+               let value = message["content"] as? String {
+                return value.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if let choices = object["choices"] as? [[String: Any]],
+               let first = choices.first,
+               let message = first["message"] as? [String: Any],
+               let value = message["content"] as? String {
+                return value.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     func analyzeDocument(at fileURL: URL, prompt: String) async throws -> String {
         let documentText = try Self.extractText(from: fileURL)
         guard !documentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -142,6 +194,11 @@ struct VerityNovaClient {
             throw VerityNovaError.conversionFailed(error.localizedDescription)
         }
     }
+}
+
+struct VerityChatTurn: Encodable {
+    let role: String
+    let content: String
 }
 
 private struct NovaChatRequest: Encodable {

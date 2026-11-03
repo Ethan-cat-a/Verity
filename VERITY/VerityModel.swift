@@ -29,6 +29,7 @@ final class VerityModel: ObservableObject {
     @Published var statusMessage = "Hello! I'm Verity, your personal helper friend."
     @Published var lastEatenFileName: String?
     @Published var isEating = false
+    @Published var mood: VerityMood = .happy
     private var hasSecurityScopedAccess = false
 
     private init() {}
@@ -47,11 +48,13 @@ final class VerityModel: ObservableObject {
         lastEatenFileName = fileURL.lastPathComponent
         statusMessage = "Ooooh, \(fileURL.lastPathComponent). What have we got here?"
         isEating = true
+        mood = .eating
 
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 750_000_000)
             guard let self else { return }
             self.isEating = false
+            self.mood = .happy
             self.statusMessage = "I ate it. Want me to understand it?"
         }
     }
@@ -59,6 +62,7 @@ final class VerityModel: ObservableObject {
     func closeFile() {
         releaseCurrentFileAccess()
         currentFile = nil
+        mood = .happy
         statusMessage = "That was tasty. Feed me something else!"
     }
 
@@ -72,6 +76,10 @@ final class VerityModel: ObservableObject {
 
     func setStatus(_ message: String) {
         statusMessage = message
+    }
+
+    func setMood(_ newMood: VerityMood) {
+        mood = newMood
     }
 }
 

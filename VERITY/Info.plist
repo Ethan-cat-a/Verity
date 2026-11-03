@@ -18,6 +18,10 @@
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>VERITY uses your microphone only when you choose to talk to your desktop companion.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>VERITY uses speech recognition to turn your spoken messages into text for NOVA V8.</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSHighResolutionCapable</key>

@@ -29,17 +29,32 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Package the macOS app
+      - name: Package the Mac app and installer disk image
         run: |
           APP_PATH="$RUNNER_TEMP/VERITY-Build/Build/Products/Release/VERITY.app"
           test -d "$APP_PATH"
-          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/VERITY-macOS.zip"
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist")
 
-      - name: Upload downloadable macOS app
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/VERITY-$VERSION-macOS.zip"
+
+          STAGING="$RUNNER_TEMP/VERITY-DMG"
+          mkdir -p "$STAGING"
+          ditto "$APP_PATH" "$STAGING/VERITY.app"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create \
+            -volname "VERITY $VERSION" \
+            -srcfolder "$STAGING" \
+            -ov \
+            -format UDZO \
+            "$GITHUB_WORKSPACE/VERITY-$VERSION-macOS.dmg"
+
+      - name: Upload downloadable Mac installers
         uses: actions/upload-artifact@v4
         with:
           name: VERITY-macOS
-          path: VERITY-macOS.zip
+          path: |
+            VERITY-*-macOS.zip
+            VERITY-*-macOS.dmg
           if-no-files-found: error
           retention-days: 30
 
@@ -64,7 +79,7 @@ jobs:
         run: |
           TAG="$GITHUB_REF_NAME"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "release-assets/VERITY-macOS.zip" --clobber
+            gh release upload "$TAG" release-assets/* --clobber
           else
-            gh release create "$TAG" "release-assets/VERITY-macOS.zip" --title "VERITY $TAG" --generate-notes
+            gh release create "$TAG" release-assets/* --title "VERITY $TAG" --generate-notes
           fi
