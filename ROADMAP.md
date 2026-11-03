@@ -1,42 +1,47 @@
-# VERITY 0.9.0 — next update plan
+# VERITY 0.9.0 — implementation roadmap
 
-## Goal
+## Delivered in this implementation pass
 
-Make VERITY feel like a useful Clippy-style desktop assistant rather than a decorative desktop pet. Keep the fixed lower-right helper from 0.8.0, but make its help more contextual, its speech more immediate, and its character more faithful to the approved reference.
+- **Study actions on reviewed screen text:** Screen → quiz, Make a study set, Socratic guidance, Practice test, and Explain focus.
+- **Review-first workflow:** the user selects a window, captures once, edits or redacts OCR text, and confirms before content is sent.
+- **Blind Mode:** clears the active screen capture and blocks window listing, capture, and sending until re-enabled.
+- **Per-app screen filters:** optional allow-list plus the existing deny-list; the deny-list and built-in sensitive-app exclusions always win.
+- **Command palette:** keyboard-accessible actions for chat, study/window understanding, memory/sessions, and Settings.
+- **Quiet Presence:** shrinks the character without monitoring the user's activity.
+- **Calmer default personality and speech:** removes exaggerated emotional tags and changes the default to the smoother existing library voice.
 
-## Planned work
+## Still planned
 
-### 1. Contextual quick-help bubble
-- Expand the hover bubble into a compact helper card with relevant actions such as "Explain this", "Summarize a document", and "Help me write".
-- Offer suggestions only when the user opens VERITY, drops a document, or explicitly shares a window. No background screen scanning.
-- Keep the full conversation window one click away and preserve the existing document, memory, and Trust Center workflows.
+### Study system
+- Persist flashcard decks locally and add spaced-repetition scheduling.
+- Add an interactive flashcard review screen and image-occlusion cards.
+- Build an interactive timed practice-test interface with answer submission and concept-level scoring.
+- Add real study-session snapshots and resume points beyond ordinary chat snapshots.
+- Add optional educational video recommendations for user-selected text.
 
-### 2. Real-time voice
-- Stream generated speech in cancellable chunks so VERITY can begin speaking before the entire answer has been synthesized.
-- Keep text and audio synchronized, support interruption, and animate the mouth to the actual speech state.
-- Continue using an original licensed/library voice with broad character traits. Do not clone or imitate a real voice actor.
+### Presence and interaction
+- Add an app-wide global hotkey that works while VERITY is not focused; the current Command-K shortcut is available while the companion window is active.
+- Add subtle attention pulses for user-approved notifications.
+- Add more precise multi-monitor window selection and context switching.
+- Add non-destructive annotation overlays only after a separate permission and privacy review.
 
-### 3. Intelligence speed and reliability
-- Measure time-to-first-token and total response time in the app, with no message content or private document text in telemetry.
-- Profile the NOVA V8 chat route and reduce upstream latency where it is actually occurring.
-- Evaluate a faster default model route with a quality fallback, rather than guessing at a model change from the client.
-- Preserve streaming, relevant memory, and accurate document analysis.
+### Trust and privacy
+- Add a local activity ledger showing which app/window was explicitly captured and which actions were taken, without retaining OCR content by default.
+- Add bulk deletion for that metadata ledger.
+- Keep Blind Mode and per-app allow/deny filters as hard gates for screen capture.
 
-### 4. Character reference pass
-- Refine the face, proportions, mouth, and expressions against an approved visual reference for VERITY.
-- Keep the deliberately severe, uncanny direction; avoid glossy, soft, cute, or childlike styling.
-- Add restrained contextual expressions without random desktop movement.
+### Voice and performance
+- Generate an original, calm US-English companion voice after the user supplies the exact preview sentence.
+- Continue cancellable phrase synthesis and evaluate actual end-to-end speech latency.
+- Measure first-token and full-response timing locally without storing user text or document content.
+- Profile the NOVA V8 route before changing model routing.
 
-### 5. Release quality
-- Add regression checks for fixed positioning, idle-expression preference, voice cancellation, streamed text, and updater compatibility.
-- Test the complete update flow on a real macOS installation before publishing.
-- Preserve existing memory, document, screen-understanding, privacy, and automatic-update features.
+### Deferred integrations
+- Calendar/PowerSchool reminders, music recognition and transport controls, passive distraction detection, and background screen monitoring are intentionally excluded from this release direction.
 
-## Acceptance criteria
+## Release checks
 
-- The helper remains fixed in the lower-right corner and opens with one click.
-- Quick-help suggestions are contextual and user-initiated; no passive screen monitoring is introduced.
-- Speech starts while the answer is still streaming and stops promptly when interrupted.
-- First-token and total response latency are measured before choosing a backend/model optimization.
-- The new face direction is compared against an approved reference before it is called final.
-- The macOS build, regression tests, release packaging, and update installation checks pass.
+- Build and regression tests must pass in GitHub Actions.
+- Test Blind Mode, app allow/deny filters, study prompts, command shortcuts, voice migration, and updater compatibility.
+- Validate the installed app and automatic update flow on a real macOS installation before publishing a stable release.
+- Preserve existing document handling, encrypted memory, saved conversations, microphone permissions, and the automatic updater.
