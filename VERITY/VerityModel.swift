@@ -26,7 +26,7 @@ final class VerityModel: ObservableObject {
     static let shared = VerityModel()
 
     @Published var currentFile: VerityFile?
-    @Published var statusMessage = "Hellooooo! I'm Verity, your personal helper friend!"
+    @Published var statusMessage = "Hello. I'm Verity, your personal helper."
     @Published var lastEatenFileName: String?
     @Published var isEating = false
     @Published var mood: VerityMood = .happy
