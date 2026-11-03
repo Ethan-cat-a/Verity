@@ -155,17 +155,17 @@ struct VerityDesktopView: View {
 
     private var homeCaption: String {
         if isDropTargeted { return "GIVE ME THE FILE." }
-        if model.isEating { return "NOM NOM NOM. NO REFUNDS." }
+        if model.isEating { return "PROCESSING. DO NOT INTERRUPT." }
         switch model.mood {
-        case .listening: return "I'm listening."
-        case .thinking: return "Processing. Be patient."
-        case .speaking: return "I HAVE THOUGHTS."
-        case .shocked: return "EXCUSE ME?"
-        case .suspicious: return "That seems suspicious."
-        case .angry: return "I AM NOT AMUSED."
-        case .manic, .excited: return "LET'S GOOOO."
-        case .sleepy: return "five more minutes..."
-        case .eating: return "NOM NOM NOM."
+        case .listening: return "Go on."
+        case .thinking: return "Working. Don't panic."
+        case .speaking: return "LISTEN CLOSELY."
+        case .shocked: return "That can't be right."
+        case .suspicious: return "I'm not convinced."
+        case .angry: return "Try that again."
+        case .manic, .excited: return "Finally. Some progress."
+        case .sleepy: return "Make it quick."
+        case .eating: return "Reading. Naturally."
         case .happy: return "I'm here. Try not to make this complicated."
         case .eerie: return "..."
         }
@@ -216,7 +216,7 @@ struct VerityDesktopPetView: View {
             }
 
             if model.isEating {
-                Text("CHOMP!")
+                Text("SAMPLE ACQUIRED")
                     .font(.system(size: 12, weight: .black, design: .rounded))
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)
@@ -225,7 +225,7 @@ struct VerityDesktopPetView: View {
                     .transition(.scale.combined(with: .opacity))
                     .allowsHitTesting(false)
             } else if petLife.hungerLevel > 0.68 {
-                Text("FEED ME")
+                Text("NO FILE. NO PROGRESS.")
                     .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1)
                     .padding(.horizontal, 9)
