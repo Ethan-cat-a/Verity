@@ -11,7 +11,6 @@ struct VeritySettingsView: View {
     @State private var voiceMessage = ""
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
-    @AppStorage(VerityVoiceService.speedPreferenceKey) private var voiceSpeed = 1.02
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
     @AppStorage(VerityPetLifeModel.eerieIdlePreferenceKey) private var eerieIdleEnabled = true
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
@@ -111,7 +110,7 @@ struct VeritySettingsView: View {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Verity character voice").font(.system(size: 13, weight: .semibold))
-                        Text("Sharper, less bubbly character delivery").font(.caption).foregroundStyle(.secondary)
+                        Text("Bright, expressive helper voice with character-led delivery").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "key")
@@ -122,15 +121,10 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
-                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original character voice with dry timing and stronger emphasis.")
+                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Original expressive male character voice.")
                     .font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 8) {
-                    Text("Speaking pace")
-                    Slider(value: $voiceSpeed, in: 0.90...1.20, step: 0.02)
-                    Text(String(format: "%.2fx", voiceSpeed))
-                        .font(.caption.monospacedDigit())
-                        .frame(width: 44, alignment: .trailing)
-                }
+                Text("Speech engine: Eleven v4 Turbo · expressive delivery with low-latency synthesis and phrase-by-phrase playback.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button("Preview selected voice") {
                     Task { await previewSelectedVoice() }
                 }
@@ -150,7 +144,7 @@ struct VeritySettingsView: View {
                 }
                 Text(hasSavedElevenLabsKey
                     ? "Your key is stored in macOS Keychain, not in app preferences or source code."
-                    : "Add an ElevenLabs API key to enable Verity's selected voice. Until then, conversation uses the Mac's built-in voice.")
+                    : "Add an ElevenLabs API key to enable the expressive Verity voice. Without it, the app uses the best available male English voice on your Mac.")
                     .font(.caption).foregroundStyle(.secondary)
                 if !voiceMessage.isEmpty {
                     Text(voiceMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
@@ -178,7 +172,9 @@ struct VeritySettingsView: View {
         .frame(width: 560, height: 690)
         .navigationTitle("Verity Settings")
         .task {
-            if selectedVoiceID == "iHiL14jSTiWXy4nzDtbq" { selectedVoiceID = VerityVoiceService.defaultVoiceID }
+            if selectedVoiceID == "iHiL14jSTiWXy4nzDtbq" || selectedVoiceID == VerityVoiceService.previousDefaultVoiceID {
+                selectedVoiceID = VerityVoiceService.defaultVoiceID
+            }
             UserDefaults.standard.register(defaults: [VerityUpdateChecker.automaticChecksKey: true])
             refreshVoiceKeyStatus()
             await checkConnection()
@@ -212,7 +208,7 @@ struct VeritySettingsView: View {
                 voiceMessage = "Add an ElevenLabs API key before previewing this voice."
                 return
             }
-            let sample = "I'm VERITY. You're back. Good. Tell me what needs fixing and be reasonably specific. I can read the document, find the useful parts, and help you get this sorted. Try not to make me do all the thinking."
+            let sample = "Hey! I'm Verity, your personal helper friend. Ask me anything! I can help you with questions, documents, and all sorts of things. Go on, what do you need?"
             let audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
             previewPlayer?.stop()
             let player = try AVAudioPlayer(data: audio)
