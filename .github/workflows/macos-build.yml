@@ -1,0 +1,25 @@
+name: macOS build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build VERITY
+        run: >-
+          xcodebuild
+          -project VERITY.xcodeproj
+          -scheme VERITY
+          -configuration Debug
+          -sdk macosx
+          CODE_SIGNING_ALLOWED=NO
+          build
