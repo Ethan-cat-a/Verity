@@ -1,10 +1,12 @@
-# VERITY 0.4.5 — your chaotic desktop companion
+# VERITY 0.5.0 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-**[Download VERITY 0.4.5 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.4-macOS.dmg)**
+**[Download the latest stable VERITY for macOS](https://github.com/Ethan-cat-a/Verity/releases/latest)**
+
+The 0.5.0 development build is in progress on the development branch.
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
@@ -59,6 +61,14 @@ VERITY uses the existing NOVA V8 service:
 https://nova-v8.vercel.app/api/chat
 
 The app sends conversation messages to NOVA V8 and keeps provider credentials on the server. No NOVA API key is embedded in VERITY.
+
+## Trust Center and screen understanding (0.5.0)
+
+Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to NOVA V8 after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; additional app names can be added in Settings.
+
+## Automatic update checks
+
+VERITY checks the official GitHub Releases endpoint on launch and periodically (when automatic checks are enabled). It compares the latest stable release to the installed version and shows a download action when a newer version exists. Installation remains user-approved; the app does not silently replace itself. This lightweight updater is used while VERITY's installers are ad-hoc signed and not notarized. A cryptographically verified in-app installer can be added when Developer ID signing and a dedicated update-signing key are configured.
 
 ## Document privacy
 

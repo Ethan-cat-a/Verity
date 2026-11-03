@@ -7,6 +7,8 @@ struct VerityDesktopView: View {
     @StateObject private var conversation = VerityConversationModel()
     @State private var isDropTargeted = false
     @State private var isConversationOpen = false
+    @State private var isScreenContextOpen = false
+    @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
 
     var body: some View {
         ZStack {
@@ -42,6 +44,9 @@ struct VerityDesktopView: View {
                     model.accept(fileURL: url)
                 }
             }
+        }
+        .sheet(isPresented: $isScreenContextOpen) {
+            VerityScreenContextSheet()
         }
     }
 
@@ -105,6 +110,19 @@ struct VerityDesktopView: View {
                 .background(Color(red: 0.13, green: 0.14, blue: 0.16), in: RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
+
+            Button {
+                isScreenContextOpen = true
+            } label: {
+                Label("Understand a window", systemImage: "macwindow")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 35)
+                    .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.07), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .help(screenContextEnabled ? "Choose a window for Verity to read" : "Enable this in Settings → Trust Center first")
 
             Label("Double-click the desktop ball to open this window", systemImage: "cursorarrow.click")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
