@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Combine
+import QuartzCore
 
 /// Owns the full conversation surface and the separate transparent desktop pet.
 @MainActor
@@ -10,6 +11,7 @@ final class VerityPanelController: ObservableObject {
     private var companionPanel: VerityPanel?
     private var petPanel: VerityPetPanel?
     private var wanderingTask: Task<Void, Never>?
+    private var inertiaTask: Task<Void, Never>?
     private var isWanderingPaused = false
     private let petSize = NSSize(width: 180, height: 180)
     private let edgePadding: CGFloat = 8
@@ -91,11 +93,14 @@ final class VerityPanelController: ObservableObject {
     }
 
     func beginUserDrag() {
+        inertiaTask?.cancel()
+        inertiaTask = nil
         isWanderingPaused = true
     }
 
-    func endUserDrag() {
+    func endUserDrag(withVelocity velocity: CGSize = .zero) {
         isWanderingPaused = false
+        startInertia(withVelocity: velocity)
     }
 
     func dragPet(by translation: CGSize) {
@@ -106,14 +111,15 @@ final class VerityPanelController: ObservableObject {
         let targetY = frame.origin.y - translation.height
         frame.origin = clampedOrigin(x: targetX, y: targetY, frameSize: frame.size, inside: bounds)
         petPanel.setFrame(frame, display: true)
-        rollAngle += Double(translation.width * 0.60 - translation.height * 0.28)
+        let radius = max(1.0, petSize.width * 0.34)
+        rollAngle += Double(translation.width - translation.height * 0.22) / Double(radius) * 180 / .pi
     }
 
     private func startWanderingIfNeeded() {
         guard wanderingTask == nil else { return }
         wanderingTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64.random(in: 11...22) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 8...15) * 1_000_000_000)
                 guard let self, !Task.isCancelled else { break }
                 guard !self.isWanderingPaused,
                       let petPanel = self.petPanel,
@@ -123,25 +129,94 @@ final class VerityPanelController: ObservableObject {
         }
     }
 
-    /// Moves the invisible pet window across the usable desktop on any display.
+    /// A small, eased, curved roll on the current display—never a random display teleport.
     private func rollToAnotherSpot(_ petPanel: NSPanel) {
-        let screens = NSScreen.screens
-        guard !screens.isEmpty else { return }
-        let screen = screens.randomElement() ?? screens[0]
-        let bounds = screen.visibleFrame.insetBy(dx: edgePadding, dy: edgePadding)
-        let maxX = max(bounds.minX, bounds.maxX - petPanel.frame.width)
-        let maxY = max(bounds.minY, bounds.maxY - petPanel.frame.height)
-        let destination = NSRect(
-            x: CGFloat.random(in: bounds.minX...maxX),
-            y: CGFloat.random(in: bounds.minY...maxY),
-            width: petPanel.frame.width,
-            height: petPanel.frame.height
+        let currentScreen = screenForFrame(petPanel.frame)
+        let bounds = currentScreen.visibleFrame.insetBy(dx: edgePadding + 12, dy: edgePadding + 12)
+        let start = petPanel.frame.origin
+        let angle = CGFloat.random(in: 0...(2 * .pi))
+        let travel = CGFloat.random(in: 190...430)
+        let rawDestination = NSPoint(
+            x: start.x + cos(angle) * travel,
+            y: start.y + sin(angle) * travel
         )
+        let destination = clampedOrigin(
+            x: rawDestination.x,
+            y: rawDestination.y,
+            frameSize: petPanel.frame.size,
+            inside: bounds
+        )
+        let dx = destination.x - start.x
+        let dy = destination.y - start.y
+        let distance = hypot(dx, dy)
+        guard distance > 40 else { return }
 
-        rollAngle += 360
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Double.random(in: 2.0...3.2)
-            petPanel.animator().setFrame(destination, display: true)
+        // A small perpendicular offset makes the route feel less like a screensaver glide.
+        let bend = CGFloat.random(in: -34...34)
+        let midpoint = NSPoint(
+            x: start.x + dx * 0.5 - (dy / distance) * bend,
+            y: start.y + dy * 0.5 + (dx / distance) * bend
+        )
+        let control = clampedOrigin(
+            x: midpoint.x,
+            y: midpoint.y,
+            frameSize: petPanel.frame.size,
+            inside: bounds
+        )
+        let speed = CGFloat.random(in: 115...165)
+        let duration = Double(distance / speed)
+        let radius = max(1.0, petSize.width * 0.34)
+        let rotationDirection = abs(dx) >= abs(dy) ? (dx >= 0 ? 1.0 : -1.0) : (dy >= 0 ? -1.0 : 1.0)
+        rollAngle += rotationDirection * Double(distance / radius) * 180 / .pi
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = max(0.55, duration * 0.48)
+            context.timingFunction = CAMediaTimingFunction(controlPoint: 0.22, 0.72, 0.25, 1.0)
+            petPanel.animator().setFrameOrigin(control)
+        }, completionHandler: { [weak self, weak petPanel] in
+            Task { @MainActor in
+                guard let self, let petPanel, !self.isWanderingPaused, petPanel.isVisible else { return }
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = max(0.55, duration * 0.52)
+                    context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    petPanel.animator().setFrameOrigin(destination)
+                }
+            }
+        })
+    }
+
+    /// Adds a short, damped roll after a fast drag so the ball has believable inertia.
+    private func startInertia(withVelocity velocity: CGSize) {
+        let initialSpeed = hypot(velocity.width, velocity.height)
+        guard initialSpeed > 220, let petPanel, petPanel.isVisible else { return }
+        let scale = min(1.0, 1050.0 / initialSpeed)
+        var vx = velocity.width * scale
+        var vy = -velocity.height * scale
+        let frameInterval = 0.016
+        let radius = max(1.0, petSize.width * 0.34)
+
+        inertiaTask?.cancel()
+        inertiaTask = Task { @MainActor [weak self, weak petPanel] in
+            guard let self, let petPanel else { return }
+            var elapsed = 0.0
+            while elapsed < 0.9 && !Task.isCancelled && !self.isWanderingPaused {
+                var frame = petPanel.frame
+                let bounds = self.screenForFrame(frame).visibleFrame.insetBy(dx: self.edgePadding, dy: self.edgePadding)
+                let proposedX = frame.origin.x + vx * frameInterval
+                let proposedY = frame.origin.y + vy * frameInterval
+                let maxX = max(bounds.minX, bounds.maxX - frame.width)
+                let maxY = max(bounds.minY, bounds.maxY - frame.height)
+                if proposedX < bounds.minX || proposedX > maxX { vx *= -0.28 }
+                if proposedY < bounds.minY || proposedY > maxY { vy *= -0.28 }
+                frame.origin = self.clampedOrigin(x: proposedX, y: proposedY, frameSize: frame.size, inside: bounds)
+                petPanel.setFrame(frame, display: true)
+                self.rollAngle += Double(vx * frameInterval) / Double(radius) * 180 / .pi
+                vx *= 0.90
+                vy *= 0.90
+                elapsed += frameInterval
+                try? await Task.sleep(nanoseconds: 16_000_000)
+            }
+            self.inertiaTask = nil
         }
     }
 
