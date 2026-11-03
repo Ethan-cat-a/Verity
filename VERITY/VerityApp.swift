@@ -62,7 +62,9 @@ struct VerityMenuBarView: View {
                 Label("Open Verity Vault", systemImage: "shippingbox")
             }
 
-            SettingsLink {
+            Button {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            } label: {
                 Label("Settings…", systemImage: "gearshape")
             }
 
