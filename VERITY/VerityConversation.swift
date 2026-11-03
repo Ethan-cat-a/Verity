@@ -522,7 +522,7 @@ final class VerityConversationModel: ObservableObject {
                     }
                 }
             } else {
-                voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
+                voiceStatus = "Mac voice · Fast local speech"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = Self.veritySystemVoice()
                 utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
