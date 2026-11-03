@@ -157,16 +157,16 @@ struct VerityDesktopView: View {
         if isDropTargeted { return "GIVE ME THE FILE." }
         if model.isEating { return "PROCESSING. DO NOT INTERRUPT." }
         switch model.mood {
-        case .listening: return "Go on."
-        case .thinking: return "Working. Don't panic."
-        case .speaking: return "LISTEN CLOSELY."
-        case .shocked: return "That can't be right."
-        case .suspicious: return "I'm not convinced."
-        case .angry: return "Try that again."
-        case .manic, .excited: return "Finally. Some progress."
-        case .sleepy: return "Make it quick."
-        case .eating: return "Reading. Naturally."
-        case .happy: return "I'm here. Try not to make this complicated."
+        case .listening: return "I'm listening! Go ahead."
+        case .thinking: return "Just a second. I've got this."
+        case .speaking: return "See? I told you I could help."
+        case .shocked: return "Oh! I wasn't expecting that."
+        case .suspicious: return "Hmm. Something isn't quite right."
+        case .angry: return "You really shouldn't have done that."
+        case .manic, .excited: return "YES! I knew I could help!"
+        case .sleepy: return "A little break? Fine. Briefly."
+        case .eating: return "Ooh, what's this?"
+        case .happy: return "Hey! I'm Verity, your personal helper friend!"
         case .eerie: return "..."
         }
     }
@@ -263,13 +263,13 @@ struct VerityDesktopPetView: View {
         }
         .task {
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64.random(in: 38...72) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 52...138) * 1_000_000_000)
                 guard !Task.isCancelled,
                       eerieIdleEnabled,
                       model.mood == .happy,
                       model.currentFile == nil,
                       !model.isEating else { continue }
-                model.showReaction(.eerie, duration: UInt64.random(in: 2_800...4_200) * 1_000_000)
+                model.showReaction(.eerie, duration: UInt64.random(in: 2_400...3_600) * 1_000_000)
             }
         }
     }
@@ -290,8 +290,8 @@ enum VerityMood: Equatable {
     case eerie
 }
 
-/// Verity's deliberately simple, unsettling yellow sphere.
-/// The talking and eating states alternate between two mouth frames.
+/// Verity's original look: a bright yellow smiley sphere with simple black features.
+ /// The unsettling face is reserved for a short, occasional idle reaction.
 struct VerityFace: View {
     var size: CGFloat = 180
     var mood: VerityMood = .happy
@@ -312,16 +312,24 @@ struct VerityFace: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            Color(red: 0.91, green: 0.76, blue: 0.12),
-                            Color(red: 0.88, green: 0.66, blue: 0.015),
-                            Color(red: 0.59, green: 0.39, blue: 0.005)
+                            Color(red: 1.0, green: 0.98, blue: 0.28),
+                            Color(red: 1.0, green: 0.88, blue: 0.02),
+                            Color(red: 0.91, green: 0.68, blue: 0.0)
                         ],
                         center: UnitPoint(x: 0.30, y: 0.22),
                         startRadius: size * 0.015,
                         endRadius: size * 0.82
                     )
                 )
-                .overlay(Circle().stroke(Color.black.opacity(0.34), lineWidth: max(1.2, size * 0.012)))
+                .overlay(Circle().stroke(Color.black.opacity(0.12), lineWidth: max(1, size * 0.008)))
+                .overlay(alignment: .topLeading) {
+                    Ellipse()
+                        .fill(.white.opacity(0.34))
+                        .frame(width: size * 0.23, height: size * 0.085)
+                        .blur(radius: size * 0.014)
+                        .rotationEffect(.degrees(-28))
+                        .offset(x: size * 0.16, y: size * 0.095)
+                }
 
             HStack(spacing: size * 0.255) {
                 eye(isLeft: true)
@@ -341,11 +349,14 @@ struct VerityFace: View {
                 .offset(y: size * 0.185)
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Verity, a muted gold sphere with a crooked, unsettling grin")
+        .accessibilityLabel("Verity, a bright yellow smiley sphere with black oval eyes and a curved smile")
         .task(id: mood) {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
-                if mood == .eerie { continue }
+                guard mood != .eerie else {
+                    isBlinking = false
+                    continue
+                }
                 withAnimation(.easeInOut(duration: 0.075)) { isBlinking = true }
                 try? await Task.sleep(nanoseconds: 115_000_000)
                 withAnimation(.easeInOut(duration: 0.10)) { isBlinking = false }
@@ -367,16 +378,16 @@ struct VerityFace: View {
 
     private func eye(isLeft: Bool) -> some View {
         let heightFactor: CGFloat = isBlinking ? 0.018
-            : (mood == .eerie ? (isLeft ? 0.19 : 0.115)
-            : (mood == .sleepy ? 0.045
-            : (mood == .angry ? 0.105 : (mood == .shocked ? 0.175 : 0.145))))
-        let widthFactor: CGFloat = mood == .shocked || mood == .eerie ? 0.125 : 0.105
+            : (mood == .eerie ? (isLeft ? 0.19 : 0.12)
+            : (mood == .sleepy ? 0.055
+            : (mood == .shocked ? 0.18 : 0.15)))
+        let widthFactor: CGFloat = mood == .eerie ? 0.12 : (mood == .shocked ? 0.13 : 0.105)
         let angle: Double = mood == .eerie ? (isLeft ? -5 : 7)
             : (mood == .angry ? (isLeft ? 15 : -15)
             : (mood == .suspicious ? (isLeft ? -7 : 8) : 0))
 
         return Ellipse()
-            .fill(Color(red: 0.018, green: 0.014, blue: 0.009))
+            .fill(Color(red: 0.012, green: 0.010, blue: 0.006))
             .frame(width: size * widthFactor, height: size * heightFactor)
             .rotationEffect(.degrees(angle))
             .animation(.spring(response: 0.22, dampingFraction: 0.65), value: mood)
@@ -396,13 +407,10 @@ struct VerityFace: View {
         if mood == .shocked {
             Ellipse()
                 .fill(Color.black)
-                .frame(width: size * 0.22, height: size * 0.29)
-                .overlay(alignment: .bottom) {
-                    toothRow(count: 4, toothHeight: size * 0.045)
-                        .padding(.bottom, size * 0.018)
-                }
-                .frame(width: size * 0.26, height: size * 0.32)
-        } else if mouthOpen || wideMouth || mood == .happy {
+                .frame(width: size * 0.17, height: size * 0.23)
+        } else if mood == .eerie {
+            openGrin
+        } else if mouthOpen || wideMouth {
             openGrin
         } else {
             closedGrin
@@ -419,25 +427,33 @@ struct VerityFace: View {
                     lineJoin: .round
                 )
             )
-            .frame(width: size * (mood == .eerie ? 0.49 : 0.42), height: size * 0.10)
+            .frame(width: size * 0.36, height: size * 0.09)
     }
 
     private var openGrin: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.018, style: .continuous)
-                .fill(Color.black)
-                .frame(width: size * (wideMouth ? 0.48 : 0.39), height: size * (wideMouth ? 0.34 : 0.29))
+        let grinWidth: CGFloat = mood == .eerie ? 0.48 : (wideMouth ? 0.40 : 0.29)
+        let grinHeight: CGFloat = mood == .eerie ? 0.34 : (wideMouth ? 0.28 : 0.20)
+        let toothCount = mood == .eerie ? 8 : 5
+
+        return ZStack {
             Ellipse()
-                .fill(Color(red: 0.38, green: 0.035, blue: 0.025).opacity(0.95))
-                .frame(width: size * 0.22, height: size * 0.09)
-                .offset(y: size * 0.105)
-            VStack(spacing: size * 0.075) {
-                toothRow(count: wideMouth ? 8 : 7, toothHeight: size * 0.064)
-                Spacer(minLength: size * 0.015)
-                toothRow(count: wideMouth ? 7 : 5, toothHeight: size * 0.050)
+                .fill(Color.black)
+                .frame(width: size * grinWidth, height: size * grinHeight)
+
+            Ellipse()
+                .fill(Color(red: 0.55, green: 0.04, blue: 0.035))
+                .frame(width: size * grinWidth * 0.66, height: size * grinHeight * 0.30)
+                .offset(y: size * grinHeight * 0.28)
+
+            VStack(spacing: size * 0.045) {
+                toothRow(count: toothCount, toothHeight: size * (mood == .eerie ? 0.060 : 0.035))
+                if mood == .eerie {
+                    Spacer(minLength: size * 0.012)
+                    toothRow(count: 7, toothHeight: size * 0.046)
+                }
             }
-            .frame(width: size * (wideMouth ? 0.43 : 0.34), height: size * 0.25)
-            .padding(.vertical, size * 0.015)
+            .frame(width: size * grinWidth * 0.88, height: size * grinHeight * 0.78)
+            .padding(.vertical, size * 0.008)
         }
         .frame(width: size * 0.53, height: size * 0.37)
     }
@@ -445,13 +461,12 @@ struct VerityFace: View {
     private func toothRow(count: Int, toothHeight: CGFloat) -> some View {
         HStack(spacing: size * 0.006) {
             ForEach(0..<count, id: \.self) { index in
-                Rectangle()
-                    .fill(Color(red: 0.91, green: 0.85, blue: 0.66))
+                RoundedRectangle(cornerRadius: size * 0.008, style: .continuous)
+                    .fill(Color(red: 1.0, green: 0.96, blue: 0.82))
                     .frame(
-                        width: size * (index == count / 2 ? 0.061 : 0.052),
-                        height: toothHeight * (index.isMultiple(of: 2) ? 1.0 : 0.82)
+                        width: size * (index == count / 2 ? 0.055 : 0.047),
+                        height: toothHeight
                     )
-                    .rotationEffect(.degrees(index.isMultiple(of: 2) ? 1.4 : -1.8))
             }
         }
     }
