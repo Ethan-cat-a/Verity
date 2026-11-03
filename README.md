@@ -1,6 +1,8 @@
 # VERITY 0.10.0 — the know-it-all ball
 
-**A little Clippy energy. A much bigger ego. A slightly unsettling smile.**
+**Meet the smartest thing on your desktop. It knows it.**
+
+A little Clippy energy. A much bigger ego. A slightly unsettling smile.
 
 VERITY is a tiny yellow desktop companion that acts like it knows everything. Click the ball, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
 
