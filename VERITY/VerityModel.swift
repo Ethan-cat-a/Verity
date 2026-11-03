@@ -31,7 +31,6 @@ final class VerityModel: ObservableObject {
 
     @Published var currentFile: VerityFile?
     @Published var statusMessage = "Hello. I'm Verity, your personal helper."
-    @Published var lastEatenFileName: String?
     @Published var isEating = false
     @Published var mood: VerityMood = .happy
     private var hasSecurityScopedAccess = false
@@ -50,8 +49,7 @@ final class VerityModel: ObservableObject {
         hasSecurityScopedAccess = fileURL.startAccessingSecurityScopedResource()
         // Keep security-scoped access alive while the file inspector is open.
         currentFile = VerityFile(url: fileURL)
-        lastEatenFileName = fileURL.lastPathComponent
-        statusMessage = "Ooh, a new file! Let's see what we've got: \(fileURL.lastPathComponent)." 
+        statusMessage = "A new document. Excellent. I'll inspect it."
         isEating = true
         mood = .eating
 
