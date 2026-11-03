@@ -26,8 +26,12 @@ struct VerityDesktopView: View {
                 VerityFileInspectorView(file: file) { model.closeFile() }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if isConversationOpen {
-                VerityConversationView(model: conversation) { isConversationOpen = false }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                VerityConversationView(
+                    model: conversation,
+                    onClose: { isConversationOpen = false },
+                    onCommandPalette: { isCommandPaletteOpen = true }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
                 characterHome.transition(.opacity)
             }
