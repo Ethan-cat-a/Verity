@@ -50,7 +50,7 @@ enum VerityVoiceService {
 
     static var speed: Double {
         let stored = UserDefaults.standard.double(forKey: speedPreferenceKey)
-        return stored == 0 ? 1.08 : min(1.20, max(0.85, stored))
+        return stored == 0 ? 1.02 : min(1.20, max(0.85, stored))
     }
 
     static func synthesize(_ text: String, apiKey: String) async throws -> Data {
@@ -287,7 +287,7 @@ final class VerityConversationModel: ObservableObject {
         if let remembered = explicitRememberContent(from: text) {
             messages.append(VerityConversationMessage(isUser: true, text: text))
             if VerityResponseParser.containsSensitiveInformation(remembered) {
-                messages.append(VerityConversationMessage(isUser: false, text: "I can remember project notes and preferences, but I won't store passwords, codes, payment details, or keys."))
+                messages.append(VerityConversationMessage(isUser: false, text: "I can store project notes and preferences. Passwords, codes, payment details, and keys are off-limits."))
                 return
             }
             let lower = remembered.lowercased()
@@ -295,7 +295,7 @@ final class VerityConversationModel: ObservableObject {
             let title = String(remembered.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
             VerityMemoryStore.shared.saveMemory(title: title, content: remembered, category: category)
             let confirmation = VerityMemoryStore.shared.storageError == nil
-                ? "Got it. I've saved that in my memory. You can review or remove it any time."
+                ? "Saved. You can review or delete it in Memory & sessions."
                 : "I tried to save that, but the local memory file reported an error: \(VerityMemoryStore.shared.storageError ?? "unknown error")"
             messages.append(VerityConversationMessage(isUser: false, text: confirmation))
             startSpeaking(confirmation)
@@ -319,7 +319,7 @@ final class VerityConversationModel: ObservableObject {
             let history = self.messages.suffix(5).map {
                 VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_800)))
             }
-            let savedContext = VerityMemoryStore.shared.context(for: text)
+            let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(1_800))
             do {
                 let reply = try await self.nova.conversationReply(
                     history: Array(history),
@@ -372,9 +372,9 @@ final class VerityConversationModel: ObservableObject {
         messages = snapshot.messages.map { VerityConversationMessage(isUser: $0.isUser, text: $0.text) }
         if !snapshot.goal.isEmpty || !snapshot.nextStep.isEmpty {
             let summary = [snapshot.goal, snapshot.nextStep].filter { !$0.isEmpty }.joined(separator: "\n")
-            messages.append(VerityConversationMessage(isUser: false, text: "Welcome back! Here's where we left off:\n\(summary)"))
+            messages.append(VerityConversationMessage(isUser: false, text: "Back again. Here's the point we reached:\n\(summary)"))
         } else {
-            messages.append(VerityConversationMessage(isUser: false, text: "Welcome back! I restored our last conversation."))
+            messages.append(VerityConversationMessage(isUser: false, text: "Session restored. Continue."))
         }
     }
 
@@ -474,6 +474,8 @@ final class VerityConversationModel: ObservableObject {
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.02
+            utterance.pitchMultiplier = 0.98
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                 try? await Task.sleep(nanoseconds: 120_000_000)
@@ -574,8 +576,8 @@ struct VerityConversationView: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Hey! I'm Verity.").font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("Tap the microphone, say something, then tap again when you're finished. Or type a message below. I can also read files you drop on my ball.")
+                            Text("VERITY. At your service. Be specific.").font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text("Speak or type a request. I can read supported files, extract the useful parts, and help you work through the problem.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
