@@ -48,13 +48,28 @@ enum VerityVoiceService {
     static let speedPreferenceKey = "verity.voice.speed"
     static let defaultVoiceID = VerityVoiceOption.defaultID
     static let previousDefaultVoiceID = "QZ1okeFI43NQd6lXAzQ5"
+    private static let voiceMigrationKey = "verity.voice.preference.migrated.0.8.1"
+
+    static func migrateLegacyVoicePreferenceIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: voiceMigrationKey) else { return }
+
+        let saved = defaults.string(forKey: voicePreferenceKey)
+        let legacyIDs = [
+            previousDefaultVoiceID,
+            "iHiL14jSTiWXy4nzDtbq",
+            "B6uUx2p7cRgxseOUyP6P",
+            "rLl4PSDTzX3VHL4wjSFI"
+        ]
+        if let saved, legacyIDs.contains(saved) {
+            defaults.set(defaultVoiceID, forKey: voicePreferenceKey)
+        }
+        defaults.set(true, forKey: voiceMigrationKey)
+    }
 
     static var voiceID: String {
-        let saved = UserDefaults.standard.string(forKey: voicePreferenceKey)
-        if saved == previousDefaultVoiceID || saved == "iHiL14jSTiWXy4nzDtbq" {
-            return defaultVoiceID
-        }
-        return saved ?? defaultVoiceID
+        migrateLegacyVoicePreferenceIfNeeded()
+        return UserDefaults.standard.string(forKey: voicePreferenceKey) ?? defaultVoiceID
     }
 
     static func synthesize(
