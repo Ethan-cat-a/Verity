@@ -21,7 +21,7 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 350_000_000)
-            VerityPanelController.shared.show()
+            VerityPanelController.shared.showPet()
         }
     }
 }
@@ -53,7 +53,19 @@ struct VerityMenuBarView: View {
             Button {
                 VerityPanelController.shared.hide()
             } label: {
-                Label("Hide Verity", systemImage: "eye.slash")
+                Label("Hide Verity window", systemImage: "eye.slash")
+            }
+
+            Button {
+                VerityPanelController.shared.showPetAgain()
+            } label: {
+                Label("Show desktop pet", systemImage: "pawprint")
+            }
+
+            Button {
+                VerityPanelController.shared.hidePet()
+            } label: {
+                Label("Hide desktop pet", systemImage: "eye.slash")
             }
 
             Button {

@@ -11,7 +11,7 @@ struct VeritySettingsView: View {
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.4.3"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.4.4"
     }
 
     var body: some View {
@@ -40,7 +40,7 @@ struct VeritySettingsView: View {
                     .font(.callout)
             }
 
-            Section("Verity voice · ElevenLabs")
+            Section("Verity voice · ElevenLabs") {
                 HStack(spacing: 9) {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
@@ -90,7 +90,7 @@ struct VeritySettingsView: View {
         }
         .formStyle(.grouped)
         .padding(16)
-        .frame(width: 560, height: 650)
+        .frame(width: 560, height: 690)
         .navigationTitle("Verity Settings")
         .task { refreshVoiceKeyStatus(); await checkConnection() }
     }

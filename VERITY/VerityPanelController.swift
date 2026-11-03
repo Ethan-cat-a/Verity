@@ -2,20 +2,55 @@ import AppKit
 import SwiftUI
 import Combine
 
+/// Owns the full conversation surface and the separate transparent desktop pet.
 @MainActor
 final class VerityPanelController: ObservableObject {
     static let shared = VerityPanelController()
 
-    private var panel: VerityPanel?
+    private var companionPanel: VerityPanel?
+    private var petPanel: VerityPetPanel?
     private var wanderingTask: Task<Void, Never>?
     private var isWanderingPaused = false
-    private let edgePadding: CGFloat = 16
+    private let petSize = NSSize(width: 180, height: 180)
+    private let edgePadding: CGFloat = 8
+
     @Published private(set) var rollAngle = 0.0
 
     private init() {}
 
+    /// Kept as the normal menu action: open the full Verity window.
     func show() {
-        if panel == nil {
+        showCompanion()
+    }
+
+    func showPet() {
+        if petPanel == nil {
+            let newPanel = VerityPetPanel(
+                contentRect: NSRect(origin: .zero, size: petSize),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            newPanel.isFloatingPanel = true
+            newPanel.level = .floating
+            newPanel.isOpaque = false
+            newPanel.backgroundColor = .clear
+            newPanel.hasShadow = false
+            newPanel.hidesOnDeactivate = false
+            newPanel.isMovableByWindowBackground = false
+            newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            newPanel.contentView = NSHostingView(rootView: VerityDesktopPetView())
+            newPanel.setFrameOrigin(initialPetOrigin(for: petSize))
+            petPanel = newPanel
+        }
+
+        petPanel?.orderFrontRegardless()
+        isWanderingPaused = false
+        startWanderingIfNeeded()
+    }
+
+    func showCompanion() {
+        if companionPanel == nil {
             let size = NSSize(width: 380, height: 560)
             let newPanel = VerityPanel(
                 contentRect: NSRect(origin: .zero, size: size),
@@ -29,69 +64,88 @@ final class VerityPanelController: ObservableObject {
             newPanel.backgroundColor = .clear
             newPanel.hasShadow = false
             newPanel.hidesOnDeactivate = false
-            newPanel.isMovableByWindowBackground = false
+            newPanel.isMovableByWindowBackground = true
             newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
             newPanel.contentView = NSHostingView(rootView: VerityDesktopView())
-            newPanel.setFrameOrigin(initialOrigin(for: size))
-            panel = newPanel
+            newPanel.setFrameOrigin(initialCompanionOrigin(for: size))
+            companionPanel = newPanel
         }
-        isWanderingPaused = false
-        panel?.orderFrontRegardless()
-        startWanderingIfNeeded()
-    }
 
-    func hide() {
         isWanderingPaused = true
-        panel?.orderOut(nil)
+        companionPanel?.orderFrontRegardless()
     }
 
-    func setWanderingPaused(_ paused: Bool) { isWanderingPaused = paused }
-    func beginUserDrag() { isWanderingPaused = true }
-    func endUserDrag() { isWanderingPaused = false }
+    /// Hides only the larger interaction window; the little desktop pet stays.
+    func hide() {
+        companionPanel?.orderOut(nil)
+        isWanderingPaused = false
+    }
 
-    func dragPanel(by translation: CGSize) {
-        guard let panel else { return }
-        var frame = panel.frame
-        let bounds = screenForPanel(frame).visibleFrame.insetBy(dx: edgePadding, dy: edgePadding)
-        let proposedX = frame.origin.x + translation.width
-        let proposedY = frame.origin.y - translation.height
-        frame.origin = clampedOrigin(x: proposedX, y: proposedY, frameSize: frame.size, inside: bounds)
-        panel.setFrame(frame, display: true)
-        rollAngle += Double(translation.width * 0.45 - translation.height * 0.20)
+    func hidePet() {
+        isWanderingPaused = true
+        petPanel?.orderOut(nil)
+    }
+
+    func showPetAgain() {
+        showPet()
+    }
+
+    func beginUserDrag() {
+        isWanderingPaused = true
+    }
+
+    func endUserDrag() {
+        isWanderingPaused = false
+    }
+
+    func dragPet(by translation: CGSize) {
+        guard let petPanel else { return }
+        var frame = petPanel.frame
+        let bounds = screenForFrame(frame).visibleFrame.insetBy(dx: edgePadding, dy: edgePadding)
+        let targetX = frame.origin.x + translation.width
+        let targetY = frame.origin.y - translation.height
+        frame.origin = clampedOrigin(x: targetX, y: targetY, frameSize: frame.size, inside: bounds)
+        petPanel.setFrame(frame, display: true)
+        rollAngle += Double(translation.width * 0.60 - translation.height * 0.28)
     }
 
     private func startWanderingIfNeeded() {
         guard wanderingTask == nil else { return }
         wanderingTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64.random(in: 10...18) * 1_000_000_000)
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 11...22) * 1_000_000_000)
                 guard let self, !Task.isCancelled else { break }
-                guard !self.isWanderingPaused, let panel = self.panel, panel.isVisible else { continue }
-                self.wanderToAnotherSpot(panel)
+                guard !self.isWanderingPaused,
+                      let petPanel = self.petPanel,
+                      petPanel.isVisible else { continue }
+                self.rollToAnotherSpot(petPanel)
             }
         }
     }
 
-    private func wanderToAnotherSpot(_ panel: NSPanel) {
-        let bounds = screenForPanel(panel.frame).visibleFrame.insetBy(dx: edgePadding, dy: edgePadding)
-        let minX = bounds.minX
-        let minY = bounds.minY
-        let maxX = max(minX, bounds.maxX - panel.frame.width)
-        let maxY = max(minY, bounds.maxY - panel.frame.height)
+    /// Moves the invisible pet window across the usable desktop on any display.
+    private func rollToAnotherSpot(_ petPanel: NSPanel) {
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return }
+        let screen = screens.randomElement() ?? screens[0]
+        let bounds = screen.visibleFrame.insetBy(dx: edgePadding, dy: edgePadding)
+        let maxX = max(bounds.minX, bounds.maxX - petPanel.frame.width)
+        let maxY = max(bounds.minY, bounds.maxY - petPanel.frame.height)
         let destination = NSRect(
-            x: CGFloat.random(in: minX...maxX),
-            y: CGFloat.random(in: minY...maxY),
-            width: panel.frame.width,
-            height: panel.frame.height
+            x: CGFloat.random(in: bounds.minX...maxX),
+            y: CGFloat.random(in: bounds.minY...maxY),
+            width: petPanel.frame.width,
+            height: petPanel.frame.height
         )
+
         rollAngle += 360
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 2.7
-            panel.animator().setFrame(destination, display: true)
+            context.duration = Double.random(in: 2.0...3.2)
+            petPanel.animator().setFrame(destination, display: true)
         }
     }
 
-    private func screenForPanel(_ frame: NSRect) -> NSScreen {
+    private func screenForFrame(_ frame: NSRect) -> NSScreen {
         let center = NSPoint(x: frame.midX, y: frame.midY)
         return NSScreen.screens.first(where: { $0.visibleFrame.contains(center) })
             ?? NSScreen.main
@@ -101,16 +155,29 @@ final class VerityPanelController: ObservableObject {
     private func clampedOrigin(x: CGFloat, y: CGFloat, frameSize: NSSize, inside bounds: NSRect) -> NSPoint {
         let maxX = max(bounds.minX, bounds.maxX - frameSize.width)
         let maxY = max(bounds.minY, bounds.maxY - frameSize.height)
-        return NSPoint(x: min(max(x, bounds.minX), maxX), y: min(max(y, bounds.minY), maxY))
+        return NSPoint(
+            x: min(max(x, bounds.minX), maxX),
+            y: min(max(y, bounds.minY), maxY)
+        )
     }
 
-    private func initialOrigin(for size: NSSize) -> NSPoint {
-        let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        return NSPoint(x: visibleFrame.maxX - size.width - 28, y: visibleFrame.maxY - size.height - 36)
+    private func initialPetOrigin(for size: NSSize) -> NSPoint {
+        let frame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        return NSPoint(x: frame.maxX - size.width - 24, y: frame.maxY - size.height - 80)
+    }
+
+    private func initialCompanionOrigin(for size: NSSize) -> NSPoint {
+        let frame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        return NSPoint(x: frame.maxX - size.width - 28, y: frame.maxY - size.height - 36)
     }
 }
 
 private final class VerityPanel: NSPanel {
     override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
+private final class VerityPetPanel: NSPanel {
+    override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }

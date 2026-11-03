@@ -1,10 +1,10 @@
-# VERITY 0.4.3 — your chaotic desktop companion
+# VERITY 0.4.4 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, an unnervingly wide toothy grin, and a collection of expressive reactions. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-**[Download VERITY 0.4.3 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.3-macOS.dmg)**
+**[Download VERITY 0.4.4 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.4-macOS.dmg)**
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
@@ -25,11 +25,13 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Automatic face reactions during document drops, voice conversations, jokes, and errors.
 - Native macOS app icon generated to match Verity.
 
-## Chaotic pet life
+## Chaotic desktop pet
 
-- Verity wanders around the screen while idle, smoothly gliding between random spots.
-- Drag the yellow sphere to move it; it spins while being dragged and delivers a grumpy scripted line when released.
-- Idle animation is a gentle breathing motion plus occasional blinks.
+- Verity now appears as a transparent, borderless desktop ball rather than living inside the large card window.
+- It smoothly wanders to random positions across your available displays, like a desktop goose.
+- Drag the ball itself to roll it around. It says a randomly selected grumpy line when you release it.
+- Double-click the ball to open the full conversation and document window. Right-click for desktop-pet options.
+- Idle animation uses a subtle breath and occasional natural blink. Eating and talking have a separate two-frame jaw animation.
 - When hungry, Verity may sample a random item name from your user Trash for a chomping gag.
 - **Trash snacks are visual only.** It reads only the filename and never opens, deletes, moves, renames, or restores the item. Disable "Let Verity snack from Trash" in Settings to turn this off.
 

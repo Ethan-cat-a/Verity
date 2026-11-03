@@ -1,16 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The full Verity conversation/document surface, opened from the desktop pet.
 struct VerityDesktopView: View {
     @ObservedObject private var model = VerityModel.shared
-    @ObservedObject private var panelController = VerityPanelController.shared
     @StateObject private var conversation = VerityConversationModel()
-    @StateObject private var petLife = VerityPetLifeModel()
     @State private var isDropTargeted = false
-    @State private var isFloating = false
     @State private var isConversationOpen = false
-    @State private var isDraggingCharacter = false
-    @State private var previousDragTranslation = CGSize.zero
 
     var body: some View {
         ZStack {
@@ -35,17 +31,6 @@ struct VerityDesktopView: View {
         .frame(width: 380, height: 560)
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: model.currentFile?.id)
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: isConversationOpen)
-        .onAppear {
-            petLife.start()
-            VerityPanelController.shared.setWanderingPaused(false)
-            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) { isFloating = true }
-        }
-        .onChange(of: isConversationOpen) { value in
-            VerityPanelController.shared.setWanderingPaused(value || model.currentFile != nil)
-        }
-        .onChange(of: model.currentFile?.id) { value in
-            VerityPanelController.shared.setWanderingPaused(value != nil || isConversationOpen)
-        }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
             FileDropHandler.handle(providers) { url in
                 Task { @MainActor in
@@ -79,32 +64,18 @@ struct VerityDesktopView: View {
                         .background(.black.opacity(0.06), in: Circle())
                 }
                 .buttonStyle(.plain)
-                .help("Hide Verity")
+                .help("Close this window (Verity stays on your desktop)")
             }
 
             Spacer(minLength: 0)
 
-            ZStack {
-                Circle()
-                    .fill(Color.yellow.opacity(isDropTargeted ? 0.30 : 0.12))
-                    .frame(width: 286, height: 286)
-                    .blur(radius: 24)
-                Circle()
-                    .stroke(Color.orange.opacity(0.08), lineWidth: 1)
-                    .frame(width: 274, height: 274)
-                VerityFace(
-                    size: 248,
-                    mood: isDropTargeted ? .manic : (model.isEating ? .eating : model.mood)
-                )
-                .scaleEffect(model.isEating ? 0.90 : (isDropTargeted ? 1.07 : 1.0))
-                .offset(y: isFloating && !model.isEating ? -6 : 5)
-                .rotationEffect(.degrees(model.mood == .angry ? -3 : (model.mood == .manic ? 2 : 0)))
-                .shadow(color: .orange.opacity(0.18), radius: 18, y: 12)
-                .animation(.spring(response: 0.34, dampingFraction: 0.55), value: isDropTargeted)
-                .animation(.spring(response: 0.25, dampingFraction: 0.45), value: model.isEating)
-                .animation(.spring(response: 0.4, dampingFraction: 0.58), value: model.mood)
-            }
-            .frame(height: 286)
+            VerityFace(
+                size: 235,
+                mood: isDropTargeted ? .manic : (model.isEating ? .eating : model.mood)
+            )
+            .shadow(color: .orange.opacity(0.18), radius: 16, y: 10)
+            .animation(.spring(response: 0.34, dampingFraction: 0.60), value: model.mood)
+            .animation(.spring(response: 0.30, dampingFraction: 0.62), value: model.isEating)
 
             Text(homeCaption)
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
@@ -135,7 +106,7 @@ struct VerityDesktopView: View {
             }
             .buttonStyle(.plain)
 
-            Label("Drag my face to move me · Drop a file to feed me", systemImage: "hand.draw")
+            Label("Double-click the desktop ball to open this window", systemImage: "cursorarrow.click")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.tertiary)
 
@@ -143,36 +114,11 @@ struct VerityDesktopView: View {
         }
         .padding(19)
         .frame(width: 380, height: 560)
-        .contentShape(Rectangle())
-    }
-
-    private var characterDragGesture: some Gesture {
-        DragGesture(minimumDistance: 5)
-            .onChanged { value in
-                if !isDraggingCharacter {
-                    isDraggingCharacter = true
-                    previousDragTranslation = .zero
-                    VerityPanelController.shared.beginUserDrag()
-                    model.setMood(.excited)
-                }
-                let delta = CGSize(
-                    width: value.translation.width - previousDragTranslation.width,
-                    height: value.translation.height - previousDragTranslation.height
-                )
-                previousDragTranslation = value.translation
-                VerityPanelController.shared.dragPanel(by: delta)
-            }
-            .onEnded { _ in
-                isDraggingCharacter = false
-                previousDragTranslation = .zero
-                VerityPanelController.shared.endUserDrag()
-                conversation.reactAfterBeingDragged()
-            }
     }
 
     private var homeCaption: String {
         if isDropTargeted { return "GIVE ME THE FILE." }
-        if isDraggingCharacter { return "WHEEEEE— WAIT. PUT ME DOWN." }
+        if model.isEating { return "NOM NOM NOM. NO REFUNDS." }
         switch model.mood {
         case .listening: return "I'm listening."
         case .thinking: return "Processing. Be patient."
@@ -183,8 +129,113 @@ struct VerityDesktopView: View {
         case .manic, .excited: return "LET'S GOOOO."
         case .sleepy: return "five more minutes..."
         case .eating: return "NOM NOM NOM."
-        case .happy: return petLife.hungerLevel > 0.7 ? "FEED ME, COWARD." : "Hey. It's me. It's Verity."
+        case .happy: return "Hey. It's me. It's Verity."
         }
+    }
+}
+
+/// A transparent, borderless desktop-pet window. Only the ball is visible;
+/// the invisible window follows it around the desktop like a small desktop goose.
+struct VerityDesktopPetView: View {
+    @ObservedObject private var model = VerityModel.shared
+    @ObservedObject private var controller = VerityPanelController.shared
+    @StateObject private var petLife = VerityPetLifeModel()
+    @StateObject private var conversation = VerityConversationModel()
+    @State private var isBreathing = false
+    @State private var isChomping = false
+    @State private var isDragging = false
+    @State private var previousTranslation = CGSize.zero
+
+    var body: some View {
+        ZStack {
+            VerityFace(
+                size: 154,
+                mood: model.isEating ? .eating : model.mood
+            )
+            .scaleEffect(model.isEating ? (isChomping ? 1.075 : 0.935) : (isBreathing ? 1.012 : 0.992))
+            .rotationEffect(.degrees(controller.rollAngle + (model.mood == .angry ? -5 : 0)))
+            .shadow(color: .orange.opacity(0.24), radius: 12, y: 7)
+            .animation(.linear(duration: 2.5), value: controller.rollAngle)
+            .animation(.spring(response: 0.15, dampingFraction: 0.50), value: isChomping)
+            .animation(.spring(response: 0.36, dampingFraction: 0.65), value: model.mood)
+            .contentShape(Circle())
+            .gesture(petDragGesture)
+            .onTapGesture(count: 2) {
+                controller.showCompanion()
+            }
+            .help("Double-click to open Verity. Drag to roll it around. Right-click for options.")
+
+            if model.isEating {
+                Text("CHOMP!")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(.regularMaterial, in: Capsule())
+                    .offset(y: -91)
+                    .transition(.scale.combined(with: .opacity))
+                    .allowsHitTesting(false)
+            } else if petLife.hungerLevel > 0.68 {
+                Text("FEED ME")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .tracking(1)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(.regularMaterial, in: Capsule())
+                    .offset(y: -91)
+                    .transition(.scale.combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+        }
+        .frame(width: 180, height: 180)
+        .background(Color.clear)
+        .contentShape(Circle())
+        .contextMenu {
+            Button("Open Verity") { controller.showCompanion() }
+            Button("Hide desktop pet") { controller.hidePet() }
+        }
+        .onAppear {
+            petLife.start()
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                isBreathing = true
+            }
+        }
+        .task(id: model.isEating) {
+            guard model.isEating else {
+                isChomping = false
+                return
+            }
+            while !Task.isCancelled {
+                withAnimation(.spring(response: 0.14, dampingFraction: 0.48)) {
+                    isChomping.toggle()
+                }
+                try? await Task.sleep(nanoseconds: 155_000_000)
+            }
+        }
+    }
+
+    private var petDragGesture: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                if !isDragging {
+                    isDragging = true
+                    previousTranslation = .zero
+                    controller.beginUserDrag()
+                    model.setMood(.excited)
+                }
+
+                let delta = CGSize(
+                    width: value.translation.width - previousTranslation.width,
+                    height: value.translation.height - previousTranslation.height
+                )
+                previousTranslation = value.translation
+                controller.dragPet(by: delta)
+            }
+            .onEnded { _ in
+                isDragging = false
+                previousTranslation = .zero
+                controller.endUserDrag()
+                conversation.reactAfterBeingDragged()
+            }
     }
 }
 
@@ -208,6 +259,7 @@ struct VerityFace: View {
     var size: CGFloat = 180
     var mood: VerityMood = .happy
     @State private var mouthOpen = false
+    @State private var isBlinking = false
 
     private var animatedMouth: Bool {
         mood == .speaking || mood == .eating
@@ -261,6 +313,14 @@ struct VerityFace: View {
         }
         .frame(width: size, height: size)
         .accessibilityLabel("Verity, a yellow smiley sphere with an exaggerated toothy grin")
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
+                withAnimation(.easeInOut(duration: 0.075)) { isBlinking = true }
+                try? await Task.sleep(nanoseconds: 115_000_000)
+                withAnimation(.easeInOut(duration: 0.10)) { isBlinking = false }
+            }
+        }
         .task(id: mood) {
             guard animatedMouth else {
                 mouthOpen = wideMouth || mood == .shocked
@@ -276,8 +336,9 @@ struct VerityFace: View {
     }
 
     private func eye(isLeft: Bool) -> some View {
-        let heightFactor: CGFloat = mood == .sleepy ? 0.045
-            : (mood == .angry ? 0.105 : (mood == .shocked ? 0.175 : 0.145))
+        let heightFactor: CGFloat = isBlinking ? 0.018
+            : (mood == .sleepy ? 0.045
+            : (mood == .angry ? 0.105 : (mood == .shocked ? 0.175 : 0.145)))
         let widthFactor: CGFloat = mood == .shocked ? 0.135 : 0.105
         let angle: Double = mood == .angry ? (isLeft ? 15 : -15)
             : (mood == .suspicious ? (isLeft ? -7 : 8) : 0)
@@ -286,7 +347,7 @@ struct VerityFace: View {
             .fill(Color(red: 0.018, green: 0.014, blue: 0.009))
             .frame(width: size * widthFactor, height: size * heightFactor)
             .overlay(alignment: .topTrailing) {
-                if mood != .sleepy {
+                if !isBlinking && mood != .sleepy {
                     Circle()
                         .fill(.white.opacity(0.80))
                         .frame(width: size * 0.022, height: size * 0.022)
@@ -295,6 +356,7 @@ struct VerityFace: View {
             }
             .rotationEffect(.degrees(angle))
             .animation(.spring(response: 0.22, dampingFraction: 0.65), value: mood)
+            .animation(.easeInOut(duration: 0.10), value: isBlinking)
     }
 
     private func brow(isLeft: Bool) -> some View {
@@ -325,12 +387,11 @@ struct VerityFace: View {
 
     private var closedGrin: some View {
         ZStack(alignment: .top) {
-            VerityClosedGrinShape()
-                .fill(Color.black)
-            toothRow(count: 7, toothHeight: size * 0.065)
+            VeritySmileCavityShape().fill(Color.black)
+            toothRow(count: 7, toothHeight: size * 0.052)
                 .padding(.top, size * 0.035)
         }
-        .frame(width: size * 0.64, height: size * 0.24)
+        .frame(width: size * 0.62, height: size * 0.225)
     }
 
     private var openGrin: some View {
@@ -371,20 +432,20 @@ struct VerityFace: View {
     }
 }
 
-private struct VerityClosedGrinShape: Shape {
+private struct VeritySmileCavityShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.015, y: rect.minY + rect.height * 0.10))
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.02, y: rect.minY + rect.height * 0.12))
         path.addCurve(
-            to: CGPoint(x: rect.maxX - rect.width * 0.015, y: rect.minY + rect.height * 0.10),
-            control1: CGPoint(x: rect.minX + rect.width * 0.24, y: rect.maxY * 0.91),
-            control2: CGPoint(x: rect.maxX - rect.width * 0.24, y: rect.maxY * 0.91)
+            to: CGPoint(x: rect.maxX - rect.width * 0.02, y: rect.minY + rect.height * 0.12),
+            control1: CGPoint(x: rect.minX + rect.width * 0.25, y: rect.maxY * 0.98),
+            control2: CGPoint(x: rect.maxX - rect.width * 0.25, y: rect.maxY * 0.98)
         )
-        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.12, y: rect.minY + rect.height * 0.38))
+        path.line(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.minY + rect.height * 0.34))
         path.addCurve(
-            to: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.minY + rect.height * 0.38),
-            control1: CGPoint(x: rect.maxX - rect.width * 0.30, y: rect.minY + rect.height * 0.69),
-            control2: CGPoint(x: rect.minX + rect.width * 0.30, y: rect.minY + rect.height * 0.69)
+            to: CGPoint(x: rect.minX + rect.width * 0.10, y: rect.minY + rect.height * 0.34),
+            control1: CGPoint(x: rect.maxX - rect.width * 0.30, y: rect.minY + rect.height * 0.48),
+            control2: CGPoint(x: rect.minX + rect.width * 0.30, y: rect.minY + rect.height * 0.48)
         )
         path.closeSubpath()
         return path
