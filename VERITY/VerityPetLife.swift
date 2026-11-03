@@ -48,14 +48,14 @@ final class VerityPetLifeModel: ObservableObject {
                 return !name.isEmpty && name != ".DS_Store" && !name.hasPrefix("._")
             }
             guard let snack = candidates.randomElement() else {
-                VerityModel.shared.setStatus("THE TRASH IS EMPTY. THIS IS A DISASTER.")
+                VerityModel.shared.setStatus("THE TRASH IS EMPTY. EXPECTED. STILL DISAPPOINTING.")
                 VerityModel.shared.showReaction(.angry, duration: 2_000_000_000)
                 return
             }
 
             let name = snack.lastPathComponent
             VerityModel.shared.lastEatenFileName = name
-            VerityModel.shared.statusMessage = "I found \(name). CHOMP. (I left it right there.)"
+            VerityModel.shared.statusMessage = "Found \(name). I left it exactly where it was."
             VerityModel.shared.isEating = true
             VerityModel.shared.setMood(.eating)
             Task { @MainActor in
@@ -63,10 +63,10 @@ final class VerityPetLifeModel: ObservableObject {
                 guard VerityModel.shared.isEating else { return }
                 VerityModel.shared.isEating = false
                 VerityModel.shared.setMood(.happy)
-                VerityModel.shared.statusMessage = "Snack acquired. Your Trash is untouched."
+                VerityModel.shared.statusMessage = "Done. Your Trash remains exactly as you left it."
             }
         } catch {
-            VerityModel.shared.setStatus("I can't get into the Trash. Permission denied. Feed me manually.")
+            VerityModel.shared.setStatus("Trash access denied. I will survive this disappointment.")
             VerityModel.shared.showReaction(.suspicious, duration: 2_000_000_000)
         }
     }
