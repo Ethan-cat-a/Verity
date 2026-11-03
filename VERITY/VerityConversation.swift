@@ -18,27 +18,52 @@ private struct ElevenLabsSpeechRequest: Encodable {
         let stability: Double
         let similarity_boost: Double
         let style: Double
+        let speed: Double
         let use_speaker_boost: Bool
     }
 }
 
+struct VerityVoiceOption: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let detail: String
+
+    static let defaultID = "iHiL14jSTiWXy4nzDtbq"
+
+    static let all: [VerityVoiceOption] = [
+        VerityVoiceOption(id: defaultID, title: "Bright cartoon", detail: "High-energy, playful character delivery"),
+        VerityVoiceOption(id: "CGOMbDUL52Yuc7oiDIm8", title: "Quirky game character", detail: "Cartoonish masculine game-character tone"),
+        VerityVoiceOption(id: "rLl4PSDTzX3VHL4wjSFI", title: "Warm animated companion", detail: "Natural, expressive male character delivery")
+    ]
+}
+
 enum VerityVoiceService {
-    static let voiceID = "7YaUDeaStRuoYg3FKsmU" // Callie · Friendly and sweet
+    static let voicePreferenceKey = "verity.voice.id"
+    static let speedPreferenceKey = "verity.voice.speed"
+    static let defaultVoiceID = VerityVoiceOption.defaultID
+
+    static var voiceID: String {
+        UserDefaults.standard.string(forKey: voicePreferenceKey) ?? defaultVoiceID
+    }
+
+    static var speed: Double {
+        let stored = UserDefaults.standard.double(forKey: speedPreferenceKey)
+        return stored == 0 ? 1.08 : min(1.20, max(0.85, stored))
+    }
 
     static func synthesize(_ text: String, apiKey: String) async throws -> Data {
-        guard let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_128") else {
-            throw VerityVoiceError.invalidURL
-        }
+        let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_64"
+        guard let url = URL(string: endpoint) else { throw VerityVoiceError.invalidURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 60
+        request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: String(text.prefix(1800)),
             model_id: "eleven_flash_v2_5",
-            voice_settings: .init(stability: 0.42, similarity_boost: 0.78, style: 0.45, use_speaker_boost: true)
+            voice_settings: .init(stability: 0.34, similarity_boost: 0.78, style: 0.58, speed: speed, use_speaker_boost: true)
         ))
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw VerityVoiceError.invalidResponse }
@@ -93,7 +118,7 @@ final class VerityConversationModel: ObservableObject {
     func refreshVoiceStatus() {
         do {
             let configured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
-            voiceStatus = configured ? "ElevenLabs voice · Callie" : "Mac voice · Add an ElevenLabs key in Settings"
+            voiceStatus = configured ? "Verity character voice" : "Mac voice · Add an ElevenLabs key in Settings"
         } catch {
             voiceStatus = "Mac voice · Keychain unavailable"
         }
@@ -251,7 +276,28 @@ final class VerityConversationModel: ObservableObject {
     func send(_ rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
+        if isSpeaking { stopSpeaking() }
         errorMessage = nil
+
+        if let remembered = explicitRememberContent(from: text) {
+            messages.append(VerityConversationMessage(isUser: true, text: text))
+            let lower = remembered.lowercased()
+            let sensitiveTerms = ["password", "passcode", "one-time code", "verification code", "otp", "credit card", "cvv", "api key", "secret key", "private key"]
+            if sensitiveTerms.contains(where: { lower.contains($0) }) {
+                messages.append(VerityConversationMessage(isUser: false, text: "I can remember project notes and preferences, but I won't store passwords, codes, payment details, or keys."))
+                return
+            }
+            let category: VerityMemoryCategory = (lower.contains("prefer") || lower.contains("favorite") || lower.contains("favourite") || lower.contains("like ")) ? .preference : ((lower.contains("project") || lower.contains("working on") || lower.contains("building")) ? .project : .general)
+            let title = String(remembered.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
+            VerityMemoryStore.shared.saveMemory(title: title, content: remembered, category: category)
+            let confirmation = VerityMemoryStore.shared.storageError == nil
+                ? "Got it. I've saved that in my memory. You can review or remove it any time."
+                : "I tried to save that, but the local memory file reported an error: \(VerityMemoryStore.shared.storageError ?? "unknown error")"
+            messages.append(VerityConversationMessage(isUser: false, text: confirmation))
+            Task { await speak(confirmation) }
+            return
+        }
+
         messages.append(VerityConversationMessage(isUser: true, text: text))
         VerityModel.shared.setMood(.thinking)
 
@@ -263,21 +309,70 @@ final class VerityConversationModel: ObservableObject {
         }
 
         isSending = true
+        streamingReply = ""
         Task { @MainActor [weak self] in
             guard let self else { return }
-            defer { self.isSending = false }
-            let history = self.messages.suffix(12).map {
-                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: $0.text)
+            let history = self.messages.suffix(8).map {
+                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(3_500)))
             }
+            let savedContext = VerityMemoryStore.shared.context(for: text)
             do {
-                let reply = try await self.nova.conversationReply(history: Array(history))
+                let reply = try await self.nova.conversationReply(
+                    history: Array(history),
+                    additionalContext: savedContext,
+                    onTextChunk: { [weak self] chunk in
+                        self?.streamingReply += chunk
+                    }
+                )
+                self.streamingReply = ""
                 self.messages.append(VerityConversationMessage(isUser: false, text: reply))
+                self.isSending = false
                 let reaction = self.reactionFor(input: text, reply: reply)
-                await self.speak(reply, reaction: reaction)
+                Task { @MainActor [weak self] in
+                    await self?.speak(reply, reaction: reaction)
+                }
             } catch {
+                self.streamingReply = ""
+                self.isSending = false
                 self.errorMessage = error.localizedDescription
                 VerityModel.shared.showReaction(.shocked)
             }
+        }
+    }
+
+    private func explicitRememberContent(from rawText: String) -> String? {
+        let prefixes = ["remember that ", "remember this: ", "remember: ", "save this to memory: "]
+        let trimmed = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        for prefix in prefixes {
+            if trimmed.lowercased().hasPrefix(prefix) {
+                let content = String(trimmed.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                return content.isEmpty ? nil : content
+            }
+        }
+        return nil
+    }
+
+    func saveCurrentSession() {
+        guard !messages.isEmpty else { return }
+        let lastUserText = messages.last(where: { $0.isUser })?.text ?? "Verity conversation"
+        let title = String(lastUserText.prefix(72))
+        let goal = "Continue the conversation and work captured in this chat."
+        let nextStep = "Pick up from the last exchange."
+        let notes = messages.suffix(8).map { ($0.isUser ? "You: " : "Verity: ") + $0.text }.joined(separator: "\n")
+        let savedMessages = messages.suffix(20).map { VeritySavedMessage(isUser: $0.isUser, text: $0.text) }
+        VerityMemoryStore.shared.saveSession(title: title, goal: goal, nextStep: nextStep, notes: notes, messages: Array(savedMessages))
+        VerityModel.shared.setStatus(VerityMemoryStore.shared.storageError == nil ? "Session saved. I'll keep our place." : "Couldn't save this session.")
+    }
+
+    func resumeSession(_ snapshot: VeritySessionSnapshot) {
+        stopSpeaking()
+        cancelListening()
+        messages = snapshot.messages.map { VerityConversationMessage(isUser: $0.isUser, text: $0.text) }
+        if !snapshot.goal.isEmpty || !snapshot.nextStep.isEmpty {
+            let summary = [snapshot.goal, snapshot.nextStep].filter { !$0.isEmpty }.joined(separator: "\n")
+            messages.append(VerityConversationMessage(isUser: false, text: "Welcome back! Here's where we left off:\n\(summary)"))
+        } else {
+            messages.append(VerityConversationMessage(isUser: false, text: "Welcome back! I restored our last conversation."))
         }
     }
 
@@ -329,19 +424,19 @@ final class VerityConversationModel: ObservableObject {
                 audioPlayer = player
                 player.prepareToPlay()
                 player.play()
-                voiceStatus = "ElevenLabs voice · Callie"
-                while player.isPlaying { try? await Task.sleep(nanoseconds: 120_000_000) }
+                voiceStatus = "Verity character voice"
+                while player.isPlaying && !Task.isCancelled { try? await Task.sleep(nanoseconds: 80_000_000) }
                 audioPlayer = nil
             } else {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.94
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.04\n                utterance.pitchMultiplier = 1.10
                 speechSynthesizer.speak(utterance)
-                while speechSynthesizer.isSpeaking { try? await Task.sleep(nanoseconds: 120_000_000) }
+                while speechSynthesizer.isSpeaking && !Task.isCancelled { try? await Task.sleep(nanoseconds: 80_000_000) }
             }
         } catch {
-            voiceStatus = "Mac voice · ElevenLabs unavailable"
+            voiceStatus = "Using Mac voice · character voice service unavailable"
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
@@ -378,10 +473,10 @@ private enum VerityScriptedReplies {
         if text.contains("good night") || text == "goodnight" { return "Good night! I'll be right here when you need me." }
         if text.contains("thank") { return "You're very welcome! That's what I'm here for." }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity, your little desktop companion. NOVA V8 is the intelligence behind my conversations, and I can also help you understand documents."
+            return "I'm Verity, your little desktop companion. Verity's intelligence service is the intelligence behind my conversations, and I can also help you understand documents."
         }
         if text.contains("what can you do") || text == "help" {
-            return "I can chat with you, answer questions using NOVA V8, read supported documents, summarize files, pull out key points, and keep safe copies in my Vault. You can talk to me or just drop a file on my ball."
+            return "I can chat with you, answer questions using Verity's intelligence service, read supported documents, summarize files, pull out key points, and keep safe copies in my Vault. You can talk to me or just drop a file on my ball."
         }
         if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
             return "Why did the computer go to the doctor? It had a virus. I know, I know… I'm working on my comedy."
@@ -424,6 +519,13 @@ struct VerityConversationView: View {
                         .foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
+                Button { model.saveCurrentSession() } label: {
+                    Image(systemName: "bookmark").font(.system(size: 12, weight: .semibold)).frame(width: 27, height: 27)
+                }
+                .buttonStyle(.plain)
+                .help("Save this session")
+                .disabled(model.messages.isEmpty)
+
                 if model.isSpeaking {
                     Button { model.stopSpeaking() } label: {
                         Image(systemName: "stop.fill").font(.system(size: 11, weight: .bold)).frame(width: 27, height: 27)
@@ -463,10 +565,21 @@ struct VerityConversationView: View {
                             .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                             .background(.yellow.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
                     }
-                    if model.isSending {
+                    if model.isSending && model.streamingReply.isEmpty {
                         HStack(spacing: 7) {
                             ProgressView().controlSize(.small)
-                            Text("Verity is thinking with NOVA V8…").font(.caption).foregroundStyle(.secondary)
+                            Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if !model.streamingReply.isEmpty {
+                        HStack {
+                            Text(model.streamingReply)
+                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 14))
+                                .textSelection(.enabled)
+                            Spacer(minLength: 35)
                         }
                     }
                 }
