@@ -47,8 +47,6 @@ final class VerityPanelController: ObservableObject {
         }
 
         petPanel?.orderFrontRegardless()
-        isWanderingPaused = false
-        startWanderingIfNeeded()
     }
 
     func showCompanion() {
@@ -73,18 +71,15 @@ final class VerityPanelController: ObservableObject {
             companionPanel = newPanel
         }
 
-        isWanderingPaused = true
         companionPanel?.orderFrontRegardless()
     }
 
     /// Hides only the larger interaction window; the little desktop pet stays.
     func hide() {
         companionPanel?.orderOut(nil)
-        isWanderingPaused = false
     }
 
     func hidePet() {
-        isWanderingPaused = true
         petPanel?.orderOut(nil)
     }
 
@@ -238,7 +233,7 @@ final class VerityPanelController: ObservableObject {
 
     private func initialPetOrigin(for size: NSSize) -> NSPoint {
         let frame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        return NSPoint(x: frame.maxX - size.width - 24, y: frame.maxY - size.height - 80)
+        return NSPoint(x: frame.maxX - size.width - 22, y: frame.minY + 64)
     }
 
     private func initialCompanionOrigin(for size: NSSize) -> NSPoint {
