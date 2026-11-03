@@ -431,7 +431,8 @@ final class VerityConversationModel: ObservableObject {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.04\n                utterance.pitchMultiplier = 1.10
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.04
+                utterance.pitchMultiplier = 1.10
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled { try? await Task.sleep(nanoseconds: 80_000_000) }
             }
