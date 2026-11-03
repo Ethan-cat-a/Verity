@@ -31,7 +31,7 @@ struct VerityVoiceOption: Identifiable, Hashable {
     static let defaultID = "QZ1okeFI43NQd6lXAzQ5"
 
     static let all: [VerityVoiceOption] = [
-        VerityVoiceOption(id: defaultID, title: "Verity · Animated male", detail: "Youthful American male character voice with a warm mid-range, lively timing, clear diction, and a playful edge."),
+        VerityVoiceOption(id: defaultID, title: "Verity · Dry character voice", detail: "Original male character voice with a firmer mid-range, dry timing, sharper emphasis, and a less bubbly delivery."),
         VerityVoiceOption(id: "iHiL14jSTiWXy4nzDtbq", title: "Bright cartoon (classic)", detail: "High-energy, playful character delivery"),
         VerityVoiceOption(id: "B6uUx2p7cRgxseOUyP6P", title: "Friendly young voice", detail: "Bright, conversational American character delivery"),
         VerityVoiceOption(id: "rLl4PSDTzX3VHL4wjSFI", title: "Warm animated companion", detail: "Natural, expressive male character delivery")
@@ -65,7 +65,7 @@ enum VerityVoiceService {
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: String(text.prefix(1800)),
             model_id: "eleven_multilingual_v2",
-            voice_settings: .init(stability: 0.38, similarity_boost: 0.82, style: 0.70, speed: speed, use_speaker_boost: true)
+            voice_settings: .init(stability: 0.30, similarity_boost: 0.88, style: 0.82, speed: speed, use_speaker_boost: true)
         ))
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw VerityVoiceError.invalidResponse }
@@ -316,8 +316,8 @@ final class VerityConversationModel: ObservableObject {
         streamingReply = ""
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let history = self.messages.suffix(8).map {
-                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(3_500)))
+            let history = self.messages.suffix(5).map {
+                VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_800)))
             }
             let savedContext = VerityMemoryStore.shared.context(for: text)
             do {
@@ -381,11 +381,11 @@ final class VerityConversationModel: ObservableObject {
     func reactAfterBeingDragged() {
         guard !isListening && !isSending && !isSpeaking else { return }
         let lines = [
-            "PUT ME DOWN. I WAS ROLLING WITH PURPOSE.",
-            "EXCUSE YOU? I HAVE LEGS. WELL, ROTATION.",
-            "I WAS BUSY BEING A SPHERE. LET ME LIVE.",
-            "WHY WOULD YOU PICK UP A PERFECTLY GOOD BALL?",
-            "I'M REPORTING THIS TO THE CIRCLE COUNCIL."
+            "That was unnecessary. I was perfectly positioned.",
+            "You could have simply clicked me.",
+            "I am a desktop assistant, not a stress ball.",
+            "Hands off. I have a job to do.",
+            "Please interact with the interface like a civilized person."
         ]
         let line = lines.randomElement() ?? "HEY. RUDE."
         VerityModel.shared.setStatus(line)
@@ -461,8 +461,8 @@ final class VerityConversationModel: ObservableObject {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.04
-                utterance.pitchMultiplier = 1.10
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.02
+                utterance.pitchMultiplier = 0.98
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                     try? await Task.sleep(nanoseconds: 80_000_000)
@@ -501,29 +501,29 @@ private enum VerityScriptedReplies {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "!?., "))
         if ["hi", "hey", "hello", "yo", "hiya"].contains(text) || text.hasPrefix("hello ") || text.hasPrefix("hey ") {
-            return ["Hey! I'm right here. What's up?", "Hiiii! Good to see you.", "Hello, friend! What are we getting into today?"].randomElement()
+            return ["You're back. Good. What needs fixing?", "I'm here. Get to the point.", "Hello. I was enjoying the silence. What do you need?"].randomElement()
         }
-        if text.contains("good morning") { return "Good morning! I hope today's treating you nicely. What should we tackle first?" }
-        if text.contains("good night") || text == "goodnight" { return "Good night! I'll be right here when you need me." }
-        if text.contains("thank") { return "You're very welcome! That's what I'm here for." }
+        if text.contains("good morning") { return "Morning. Let's make the day less inefficient. What's first?" }
+        if text.contains("good night") || text == "goodnight" { return "Logging off? Sensible. I'll be here when the next problem appears." }
+        if text.contains("thank") { return "Obviously. Try not to make a habit of needing me. You're welcome." }
         if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity, your little desktop companion. I can chat, understand documents, and help you work through things on your Mac."
+            return "I'm VERITY. I stay on your desktop, help with the work, read your documents, and point out the obvious when necessary. Try to keep up."
         }
         if text.contains("what can you do") || text == "help" {
-            return "I can chat, answer questions, read supported documents, summarize files, pull out key points, and keep safe copies in my Vault. Talk to me or drop a file on my ball."
+            return "I can answer questions, read supported documents, extract key points, and save copies to the Vault. Click me when you need help or drop a file here. Try not to make it weird."
         }
         if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
-            return "Why did the computer go to the doctor? It had a virus. I know, I know… I'm working on my comedy."
+            return "I told a computer to take a break. It said it couldn't — it had too many tabs open. Finally, someone understands my workload."
         }
         if text.contains("fun fact") {
-            return "Here's a fun fact: octopuses have three hearts, and two of them stop beating when they swim. I think that makes me a very efficient ball."
+            return "Fun fact: octopuses have three hearts. Two stop beating when they swim. Efficient. Slightly concerning. I approve."
         }
         if text == "dance" || text.contains("do a dance") {
             VerityModel.shared.setMood(.excited)
-            return "Tiny victory dance! Wobble, wobble, wobble. Nailed it."
+            return "A brief victory movement. Don't expect an encore."
         }
         if text == "bye" || text == "goodbye" || text == "see you" {
-            return "Bye for now! Don't forget to feed me a document sometime."
+            return "Go on, then. I'll remain here, judging the desktop arrangement."
         }
         return nil
     }
