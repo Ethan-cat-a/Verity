@@ -333,7 +333,7 @@ struct VerityScreenContextSheet: View {
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.black.opacity(0.10), lineWidth: 1))
                 }
 
-                TextField("Optional focus: paste a selected sentence, equation, or paragraph", text: $focusedSelection, axis: .vertical)
+                TextField("Paste a sentence, equation, or paragraph to focus on", text: $focusedSelection, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...3)
 
@@ -348,6 +348,12 @@ struct VerityScreenContextSheet: View {
                         Turn the reviewed content into a compact study set: a clear summary, 8 concise front/back flashcards, and 5 retrieval-practice questions. Preserve important definitions, formulas, examples, and qualifications. Do not invent missing information.
                         """)
                     }
+                    Button("Explain focus") {
+                        prepareStudyAction("""
+                        Explain the user-selected focus clearly and accurately. Break down unfamiliar terms, show the reasoning in manageable steps, and use only the reviewed screen content plus well-established background knowledge. If a diagram is described only partially by OCR, say what cannot be determined.
+                        """)
+                    }
+                    .disabled(focusedSelection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     Button("Socratic guidance") {
                         prepareStudyAction("""
                         Tutor me Socratically using only the reviewed content. Do not give the final answer or complete the work for me. Ask one focused guiding question at a time, give a small hint only when needed, and adapt to my response.
@@ -361,6 +367,7 @@ struct VerityScreenContextSheet: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
+                .disabled(model.isAsking || model.extractedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 TextField("Ask Verity about this window…", text: $question, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
@@ -439,6 +446,24 @@ struct VerityScreenContextSheet: View {
                         allowedAppNames: allowedAppNames
                     )
                 }
+            }
+        }
+        .onChange(of: allowedAppsRaw) { _ in
+            guard screenContextEnabled && !blindModeEnabled else { return }
+            Task {
+                await model.refreshWindows(
+                    excludingAppNames: excludedAppNames,
+                    allowedAppNames: allowedAppNames
+                )
+            }
+        }
+        .onChange(of: excludedAppsRaw) { _ in
+            guard screenContextEnabled && !blindModeEnabled else { return }
+            Task {
+                await model.refreshWindows(
+                    excludingAppNames: excludedAppNames,
+                    allowedAppNames: allowedAppNames
+                )
             }
         }
         .alert("Send selected screen text to Verity?", isPresented: $isConfirmingSend) {
