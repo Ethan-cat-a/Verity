@@ -143,7 +143,7 @@ struct VerityDesktopView: View {
             }
             .buttonStyle(.plain)
 
-            Label("Double-click the desktop ball to open this window", systemImage: "cursorarrow.click")
+            Label("Click Verity to open the assistant", systemImage: "cursorarrow.click")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.tertiary)
 
@@ -241,7 +241,7 @@ struct VerityDesktopPetView: View {
         .contentShape(Circle())
         .contextMenu {
             Button("Open Verity") { controller.showCompanion() }
-            Button("Hide desktop pet") { controller.hidePet() }
+            Button("Hide desktop helper") { controller.hidePet() }
         }
         .onAppear {
             petLife.start()
