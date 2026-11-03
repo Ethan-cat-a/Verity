@@ -7,7 +7,6 @@ struct VerityDocumentAssistantSheet: View {
     @StateObject private var assistant = VerityDocumentAssistantModel()
     @State private var question = ""
     @State private var pendingPrompt: String?
-    @State private var hasConfirmedUpload = false
     @State private var isShowingUploadConfirmation = false
     @Environment(\.dismiss) private var dismiss
 
@@ -112,11 +111,10 @@ struct VerityDocumentAssistantSheet: View {
         .alert("Send extracted text to Verity?", isPresented: $isShowingUploadConfirmation) {
             Button("Cancel", role: .cancel) { pendingPrompt = nil }
             Button("Send reviewed text") {
-                hasConfirmedUpload = true
                 runPendingPrompt()
             }
         } message: {
-            Text("Verity will extract text from “\(file.name)” on your Mac and send that text with your question to Verity. The original file is not uploaded. Continue?")
+            Text("Verity will extract text from “\(file.name)” on your Mac and send the extracted text with this question. The original file is not uploaded. You will be asked again before each new request. Continue?")
         }
     }
 
@@ -139,11 +137,7 @@ struct VerityDocumentAssistantSheet: View {
             return
         }
         pendingPrompt = prompt
-        if hasConfirmedUpload {
-            runPendingPrompt()
-        } else {
-            isShowingUploadConfirmation = true
-        }
+        isShowingUploadConfirmation = true
     }
 
     private func runPendingPrompt() {

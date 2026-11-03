@@ -6,6 +6,7 @@ enum VerityKeychain {
     private static let service = Bundle.main.bundleIdentifier ?? "com.verity.desktop"
     private static let account = "openai-api-key"
     private static let elevenLabsAccount = "elevenlabs-api-key"
+    private static let memoryEncryptionAccount = "verity-memory-encryption-key"
 
     static func saveAPIKey(_ apiKey: String) throws {
         let data = Data(apiKey.utf8)
@@ -49,6 +50,24 @@ enum VerityKeychain {
 
     static func deleteAPIKey() throws {
         try delete(account: account)
+    }
+
+    static func readMemoryEncryptionKey() throws -> Data? {
+        guard let encoded = try read(account: memoryEncryptionAccount) else { return nil }
+        guard let data = Data(base64Encoded: encoded), data.count == 32 else {
+            throw KeychainError(status: errSecDecode)
+        }
+        return data
+    }
+
+    static func createMemoryEncryptionKeyIfNeeded() throws -> Data {
+        if let existing = try readMemoryEncryptionKey() { return existing }
+        var bytes = [UInt8](repeating: 0, count: 32)
+        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        guard status == errSecSuccess else { throw KeychainError(status: status) }
+        let key = Data(bytes)
+        try save(key.base64EncodedString(), account: memoryEncryptionAccount)
+        return key
     }
 
     static func saveElevenLabsAPIKey(_ apiKey: String) throws {

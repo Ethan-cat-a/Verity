@@ -17,6 +17,15 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Run regression tests
+        run: |
+          swiftc -parse-as-library \
+            VERITY/VerityResponseParser.swift \
+            VERITY/VerityMemoryCipher.swift \
+            Tests/VerityRegressionTests.swift \
+            -o "$RUNNER_TEMP/VERITY-RegressionTests"
+          "$RUNNER_TEMP/VERITY-RegressionTests"
+
       - name: Build VERITY
         run: |
           xcodebuild \
@@ -108,17 +117,4 @@ jobs:
               --title "VERITY $TAG" \
               --target "$GITHUB_SHA" \
               --notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications."
-          fi
-
-      - name: Delete merged VERITY 0.5.0 development branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          PR_STATE="$(gh pr view 1 --repo "$GH_REPO" --json state --jq '.state')"
-          if [ "$PR_STATE" = "MERGED" ]; then
-            gh api --method DELETE "repos/$GH_REPO/git/refs/heads/development/0.5.0"
-            echo "Deleted development/0.5.0 after the main build and release succeeded."
-          else
-            echo "Pull request #1 is not merged; leaving the development branch untouched."
           fi

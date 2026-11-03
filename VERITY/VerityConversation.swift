@@ -28,10 +28,11 @@ struct VerityVoiceOption: Identifiable, Hashable {
     let title: String
     let detail: String
 
-    static let defaultID = "iHiL14jSTiWXy4nzDtbq"
+    static let defaultID = "QZ1okeFI43NQd6lXAzQ5"
 
     static let all: [VerityVoiceOption] = [
-        VerityVoiceOption(id: defaultID, title: "Bright cartoon", detail: "High-energy, playful character delivery"),
+        VerityVoiceOption(id: defaultID, title: "Verity · Animated male", detail: "Youthful American male character voice with a warm mid-range, lively timing, clear diction, and a playful edge."),
+        VerityVoiceOption(id: "iHiL14jSTiWXy4nzDtbq", title: "Bright cartoon (classic)", detail: "High-energy, playful character delivery"),
         VerityVoiceOption(id: "B6uUx2p7cRgxseOUyP6P", title: "Friendly young voice", detail: "Bright, conversational American character delivery"),
         VerityVoiceOption(id: "rLl4PSDTzX3VHL4wjSFI", title: "Warm animated companion", detail: "Natural, expressive male character delivery")
     ]
@@ -43,7 +44,8 @@ enum VerityVoiceService {
     static let defaultVoiceID = VerityVoiceOption.defaultID
 
     static var voiceID: String {
-        UserDefaults.standard.string(forKey: voicePreferenceKey) ?? defaultVoiceID
+        let saved = UserDefaults.standard.string(forKey: voicePreferenceKey)
+        return saved == "iHiL14jSTiWXy4nzDtbq" ? defaultVoiceID : (saved ?? defaultVoiceID)
     }
 
     static var speed: Double {
@@ -62,8 +64,8 @@ enum VerityVoiceService {
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: String(text.prefix(1800)),
-            model_id: "eleven_flash_v2_5",
-            voice_settings: .init(stability: 0.34, similarity_boost: 0.78, style: 0.58, speed: speed, use_speaker_boost: true)
+            model_id: "eleven_v3",
+            voice_settings: .init(stability: 0.38, similarity_boost: 0.82, style: 0.70, speed: speed, use_speaker_boost: true)
         ))
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw VerityVoiceError.invalidResponse }
@@ -107,6 +109,8 @@ final class VerityConversationModel: ObservableObject {
     private let audioEngine = AVAudioEngine()
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var audioPlayer: AVAudioPlayer?
+    private var speechTask: Task<Void, Never>?
+    private var speechGeneration = 0
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var tapInstalled = false
@@ -282,9 +286,7 @@ final class VerityConversationModel: ObservableObject {
 
         if let remembered = explicitRememberContent(from: text) {
             messages.append(VerityConversationMessage(isUser: true, text: text))
-            let lower = remembered.lowercased()
-            let sensitiveTerms = ["password", "passcode", "one-time code", "verification code", "otp", "credit card", "cvv", "api key", "secret key", "private key"]
-            if sensitiveTerms.contains(where: { lower.contains($0) }) {
+            if VerityResponseParser.containsSensitiveInformation(remembered) {
                 messages.append(VerityConversationMessage(isUser: false, text: "I can remember project notes and preferences, but I won't store passwords, codes, payment details, or keys."))
                 return
             }
@@ -295,7 +297,7 @@ final class VerityConversationModel: ObservableObject {
                 ? "Got it. I've saved that in my memory. You can review or remove it any time."
                 : "I tried to save that, but the local memory file reported an error: \(VerityMemoryStore.shared.storageError ?? "unknown error")"
             messages.append(VerityConversationMessage(isUser: false, text: confirmation))
-            Task { await speak(confirmation) }
+            startSpeaking(confirmation)
             return
         }
 
@@ -305,7 +307,7 @@ final class VerityConversationModel: ObservableObject {
         if let scripted = VerityScriptedReplies.reply(for: text) {
             messages.append(VerityConversationMessage(isUser: false, text: scripted))
             let reaction = reactionFor(input: text, reply: scripted)
-            Task { await speak(scripted, reaction: reaction) }
+            startSpeaking(scripted, reaction: reaction)
             return
         }
 
@@ -329,9 +331,7 @@ final class VerityConversationModel: ObservableObject {
                 self.messages.append(VerityConversationMessage(isUser: false, text: reply))
                 self.isSending = false
                 let reaction = self.reactionFor(input: text, reply: reply)
-                Task { @MainActor [weak self] in
-                    await self?.speak(reply, reaction: reaction)
-                }
+                self.startSpeaking(reply, reaction: reaction)
             } catch {
                 self.streamingReply = ""
                 self.isSending = false
@@ -388,7 +388,7 @@ final class VerityConversationModel: ObservableObject {
         ]
         let line = lines.randomElement() ?? "HEY. RUDE."
         VerityModel.shared.setStatus(line)
-        Task { await speak(line, reaction: .angry) }
+        startSpeaking(line, reaction: .angry)
     }
 
     private func reactionFor(input: String, reply: String) -> VerityMood? {
@@ -415,19 +415,47 @@ final class VerityConversationModel: ObservableObject {
         return nil
     }
 
-    private func speak(_ text: String, reaction: VerityMood? = nil) async {
+    private func startSpeaking(_ text: String, reaction: VerityMood? = nil) {
+        speechGeneration += 1
+        let generation = speechGeneration
+        speechTask?.cancel()
+        audioPlayer?.stop()
+        audioPlayer = nil
+        speechSynthesizer.stopSpeaking(at: .immediate)
+        speechTask = Task { @MainActor [weak self] in
+            await self?.speak(text, reaction: reaction, generation: generation)
+        }
+    }
+
+    private func speak(_ text: String, reaction: VerityMood?, generation: Int) async {
         isSpeaking = true
         VerityModel.shared.setMood(.speaking)
+        defer {
+            if generation == speechGeneration {
+                audioPlayer = nil
+                speechTask = nil
+                isSpeaking = false
+                if !Task.isCancelled {
+                    if let reaction {
+                        VerityModel.shared.showReaction(reaction)
+                    } else {
+                        VerityModel.shared.setMood(.happy)
+                    }
+                }
+            }
+        }
+
         do {
             if let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
                 let audio = try await VerityVoiceService.synthesize(text, apiKey: apiKey)
+                guard !Task.isCancelled, generation == speechGeneration else { return }
                 let player = try AVAudioPlayer(data: audio)
                 audioPlayer = player
                 player.prepareToPlay()
-                player.play()
-                voiceStatus = "Verity character voice"
-                while player.isPlaying && !Task.isCancelled { try? await Task.sleep(nanoseconds: 80_000_000) }
-                audioPlayer = nil
+                guard player.play() else { throw VerityVoiceError.invalidResponse }
+                while player.isPlaying && !Task.isCancelled && generation == speechGeneration {
+                    try? await Task.sleep(nanoseconds: 80_000_000)
+                }
             } else {
                 voiceStatus = "Mac voice · Add an ElevenLabs key in Settings"
                 let utterance = AVSpeechUtterance(string: text)
@@ -435,25 +463,28 @@ final class VerityConversationModel: ObservableObject {
                 utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.04
                 utterance.pitchMultiplier = 1.10
                 speechSynthesizer.speak(utterance)
-                while speechSynthesizer.isSpeaking && !Task.isCancelled { try? await Task.sleep(nanoseconds: 80_000_000) }
+                while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
+                    try? await Task.sleep(nanoseconds: 80_000_000)
+                }
             }
         } catch {
+            guard !Task.isCancelled, generation == speechGeneration else { return }
             voiceStatus = "Using Mac voice · character voice service unavailable"
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
             speechSynthesizer.speak(utterance)
-            while speechSynthesizer.isSpeaking { try? await Task.sleep(nanoseconds: 120_000_000) }
-        }
-        isSpeaking = false
-        if let reaction {
-            VerityModel.shared.showReaction(reaction)
-        } else {
-            VerityModel.shared.setMood(.happy)
+            while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
+                try? await Task.sleep(nanoseconds: 120_000_000)
+            }
         }
     }
 
+
     func stopSpeaking() {
+        speechGeneration += 1
+        speechTask?.cancel()
+        speechTask = nil
         audioPlayer?.stop()
         audioPlayer = nil
         speechSynthesizer.stopSpeaking(at: .immediate)

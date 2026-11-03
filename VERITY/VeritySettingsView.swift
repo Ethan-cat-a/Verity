@@ -1,5 +1,6 @@
 
 import SwiftUI
+import AVFoundation
 
 struct VeritySettingsView: View {
     @State private var connectionStatus = "Checking connection…"
@@ -8,6 +9,7 @@ struct VeritySettingsView: View {
     @State private var elevenLabsKey = ""
     @State private var hasSavedElevenLabsKey = false
     @State private var voiceMessage = ""
+    @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
     @AppStorage(VerityVoiceService.speedPreferenceKey) private var voiceSpeed = 1.08
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
@@ -117,6 +119,11 @@ struct VeritySettingsView: View {
                         .font(.caption.monospacedDigit())
                         .frame(width: 44, alignment: .trailing)
                 }
+                Button("Preview selected voice") {
+                    Task { await previewSelectedVoice() }
+                }
+                .disabled(!hasSavedElevenLabsKey)
+
                 SecureField("ElevenLabs API key", text: $elevenLabsKey)
                     .textFieldStyle(.roundedBorder)
                 HStack {
@@ -159,11 +166,13 @@ struct VeritySettingsView: View {
         .frame(width: 560, height: 690)
         .navigationTitle("Verity Settings")
         .task {
+            if selectedVoiceID == "iHiL14jSTiWXy4nzDtbq" { selectedVoiceID = VerityVoiceService.defaultID }
             UserDefaults.standard.register(defaults: [VerityUpdateChecker.automaticChecksKey: true])
             refreshVoiceKeyStatus()
             await checkConnection()
             if automaticUpdateChecks { updateChecker.startAutomaticChecks() }
         }
+        .onDisappear { previewPlayer?.stop() }
         .onChange(of: automaticUpdateChecks) { enabled in
             if enabled { updateChecker.startAutomaticChecks() }
             else { updateChecker.stopAutomaticChecks() }
@@ -176,6 +185,26 @@ struct VeritySettingsView: View {
         } catch {
             hasSavedElevenLabsKey = false
             voiceMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func previewSelectedVoice() async {
+        do {
+            guard let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty else {
+                voiceMessage = "Add an ElevenLabs API key before previewing this voice."
+                return
+            }
+            let sample = "Hey! I'm Verity. Oh, look who finally showed up! What are we doing today? Let's make it interesting."
+            let audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
+            previewPlayer?.stop()
+            let player = try AVAudioPlayer(data: audio)
+            previewPlayer = player
+            player.prepareToPlay()
+            guard player.play() else { throw VerityVoiceError.invalidResponse }
+            voiceMessage = "Playing the selected Verity voice."
+        } catch {
+            voiceMessage = "Voice preview failed: \(error.localizedDescription)"
         }
     }
 

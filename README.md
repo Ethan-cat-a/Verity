@@ -1,4 +1,4 @@
-# VERITY 0.6.0 — your chaotic desktop companion
+# VERITY 0.6.1 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, a simple curved smile at rest, and an exaggerated toothy grin when it gets animated or excited. Verity has its own distinct character and personality.
 
@@ -59,7 +59,7 @@ The key is stored in macOS Keychain, not in source code, preferences, or GitHub.
 
 Verity remembers only information you explicitly ask it to save. In chat, start a message with **“Remember that…”** to save a note. Use **Memory & sessions** to search, edit, pin, or delete saved entries, or to clear all memories.
 
-Memories are stored as a local JSON file in the user's Application Support directory. When memory use is enabled, Verity selects a small number of relevant saved entries for a conversation; it does not send the entire memory archive. You can turn memory use off in the Memory Manager at any time. Do not save passwords, one-time codes, API keys, or payment details.
+Memories are stored as an encrypted local archive in the user's Application Support directory. The archive uses AES-256-GCM, with its encryption key stored in macOS Keychain. Existing plaintext memory archives from 0.6.0 are migrated automatically on first launch. When memory use is enabled, Verity selects a small number of relevant saved entries for a conversation; it does not send the entire memory archive. You can turn memory use off in the Memory Manager at any time. Passwords, access codes, API keys, and payment details are blocked from new memory entries.
 
 Use **Save session** in chat to snapshot the last part of a conversation. Resume or delete saved sessions from the Sessions tab. A snapshot contains the selected chat messages and a simple goal/next-step note; it does not restore other applications or unsaved files.
 

@@ -128,7 +128,8 @@ final class VerityMemoryStore: ObservableObject {
 
     func saveMemory(title: String, content: String, category: VerityMemoryCategory) {
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanContent.isEmpty else { return }
+        guard !cleanContent.isEmpty,
+              !VerityResponseParser.containsSensitiveInformation(cleanContent) else { return }
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let item = VerityMemoryItem(
             title: cleanTitle.isEmpty ? String(cleanContent.prefix(64)) : String(cleanTitle.prefix(100)),
@@ -142,7 +143,8 @@ final class VerityMemoryStore: ObservableObject {
     func updateMemory(_ id: UUID, title: String, content: String, category: VerityMemoryCategory) {
         guard let index = memories.firstIndex(where: { $0.id == id }) else { return }
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanContent.isEmpty else { return }
+        guard !cleanContent.isEmpty,
+              !VerityResponseParser.containsSensitiveInformation(cleanContent) else { return }
         memories[index].title = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100))
         if memories[index].title.isEmpty { memories[index].title = String(cleanContent.prefix(64)) }
         memories[index].content = String(cleanContent.prefix(8_000))
@@ -228,13 +230,25 @@ final class VerityMemoryStore: ObservableObject {
     private func load() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
         do {
-            let data = try Data(contentsOf: fileURL)
-            let archive = try JSONDecoder().decode(Archive.self, from: data)
+            let storedData = try Data(contentsOf: fileURL)
+            let encrypted = VerityMemoryCipher.isEncrypted(storedData)
+            let archiveData: Data
+            if encrypted {
+                guard let key = try VerityKeychain.readMemoryEncryptionKey() else {
+                    throw VerityMemoryCipherError.invalidKey
+                }
+                archiveData = try VerityMemoryCipher.open(storedData, keyData: key)
+            } else {
+                // Migrate the 0.6.0 plaintext JSON archive automatically on first launch.
+                archiveData = storedData
+            }
+            let archive = try JSONDecoder().decode(Archive.self, from: archiveData)
             memories = archive.memories.sorted { $0.updatedAt > $1.updatedAt }
             sessions = archive.sessions.sorted { $0.updatedAt > $1.updatedAt }
             storageError = nil
+            if !encrypted { persist() }
         } catch {
-            storageError = "Couldn't read saved memory: \(error.localizedDescription)"
+            storageError = "Couldn't read saved memory securely: \(error.localizedDescription)"
         }
     }
 
@@ -245,11 +259,13 @@ final class VerityMemoryStore: ObservableObject {
             let archive = Archive(memories: memories, sessions: sessions)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let data = try encoder.encode(archive)
-            try data.write(to: fileURL, options: .atomic)
+            let plaintext = try encoder.encode(archive)
+            let key = try VerityKeychain.createMemoryEncryptionKeyIfNeeded()
+            let encrypted = try VerityMemoryCipher.seal(plaintext, keyData: key)
+            try encrypted.write(to: fileURL, options: .atomic)
             storageError = nil
         } catch {
-            storageError = "Couldn't save memory: \(error.localizedDescription)"
+            storageError = "Couldn't save encrypted memory: \(error.localizedDescription)"
         }
     }
 }
@@ -449,6 +465,10 @@ struct VerityMemoryEditorView: View {
         _category = State(initialValue: memory?.category ?? .general)
     }
 
+    private var containsSensitiveData: Bool {
+        VerityResponseParser.containsSensitiveInformation(title + "\n" + content)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(memory == nil ? "New memory" : "Edit memory")
@@ -459,8 +479,12 @@ struct VerityMemoryEditorView: View {
                     Text(item.title).tag(item)
                 }
             }
-            Text("Saved memories are stored locally. Do not save passwords, one-time codes, API keys, or payment details.")
+            Text("Saved memories are encrypted on this Mac. Passwords, access codes, API keys, and payment details are blocked.")
                 .font(.caption).foregroundStyle(.secondary)
+            if containsSensitiveData {
+                Text("This entry appears to contain sensitive information and cannot be saved.")
+                    .font(.caption).foregroundStyle(.red)
+            }
             TextEditor(text: $content)
                 .font(.system(size: 13))
                 .frame(minHeight: 170)
@@ -473,7 +497,7 @@ struct VerityMemoryEditorView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || containsSensitiveData)
             }
         }
         .padding(18)

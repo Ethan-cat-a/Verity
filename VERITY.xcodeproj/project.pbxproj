@@ -21,6 +21,8 @@
 		A1000000000000000000000D /* VerityScreenContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* VerityScreenContext.swift */; };
 		A1000000000000000000000E /* VerityUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* VerityUpdateChecker.swift */; };
 		A1000000000000000000000F /* VerityMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* VerityMemory.swift */; };
+		A10000000000000000000010 /* VerityResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* VerityResponseParser.swift */; };
+		A10000000000000000000011 /* VerityMemoryCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* VerityMemoryCipher.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +44,8 @@
 		B10000000000000000000016 /* VerityScreenContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenContext.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* VerityUpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityUpdateChecker.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* VerityMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemory.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* VerityResponseParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityResponseParser.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* VerityMemoryCipher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemoryCipher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +85,8 @@
 				B10000000000000000000016 /* VerityScreenContext.swift */,
 				B10000000000000000000017 /* VerityUpdateChecker.swift */,
 				B10000000000000000000018 /* VerityMemory.swift */,
+				B10000000000000000000019 /* VerityResponseParser.swift */,
+				B10000000000000000000020 /* VerityMemoryCipher.swift */,
 				B10000000000000000000007 /* Info.plist */,
 			);
 			path = VERITY;
@@ -167,6 +173,8 @@
 				A1000000000000000000000D /* VerityScreenContext.swift in Sources */,
 				A1000000000000000000000E /* VerityUpdateChecker.swift in Sources */,
 				A1000000000000000000000F /* VerityMemory.swift in Sources */,
+				A10000000000000000000010 /* VerityResponseParser.swift in Sources */,
+				A10000000000000000000011 /* VerityMemoryCipher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,14 +218,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VERITY/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

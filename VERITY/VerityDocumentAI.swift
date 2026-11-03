@@ -101,35 +101,11 @@ struct VerityNovaClient {
     }
 
     private static func extractStreamDelta(from data: Data) -> String {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return "" }
-        if let choices = object["choices"] as? [[String: Any]], let first = choices.first {
-            if let delta = first["delta"] as? [String: Any], let content = delta["content"] as? String { return content }
-            if let message = first["message"] as? [String: Any], let content = message["content"] as? String { return content }
-        }
-        if let value = object["delta"] as? String { return value }
-        if let value = object["token"] as? String { return value }
-        return ""
+        VerityResponseParser.streamDelta(from: data)
     }
 
     private static func extractAssistantText(from data: Data) -> String {
-        if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            for key in ["content", "response", "text", "output"] {
-                if let value = object[key] as? String, !value.isEmpty {
-                    return value.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-            }
-            if let message = object["message"] as? [String: Any],
-               let value = message["content"] as? String {
-                return value.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            if let choices = object["choices"] as? [[String: Any]],
-               let first = choices.first,
-               let message = first["message"] as? [String: Any],
-               let value = message["content"] as? String {
-                return value.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        }
-        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        VerityResponseParser.assistantText(from: data)
     }
 
     func analyzeDocument(at fileURL: URL, prompt: String) async throws -> String {
@@ -175,7 +151,7 @@ struct VerityNovaClient {
             throw VerityNovaError.httpStatus(http.statusCode, detail)
         }
 
-        let answer = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let answer = Self.extractAssistantText(from: data)
         guard !answer.isEmpty else { throw VerityNovaError.emptyAnswer }
         return answer
     }
