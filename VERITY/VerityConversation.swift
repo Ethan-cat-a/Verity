@@ -62,7 +62,7 @@ enum VerityVoiceService {
         apiKey: String,
         mood: VerityMood? = nil
     ) async throws -> Data {
-        let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\\(voiceID)?output_format=mp3_44100_64"
+        let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_64"
         guard let url = URL(string: endpoint) else { throw VerityVoiceError.invalidURL }
 
         let direction: String
@@ -82,7 +82,7 @@ enum VerityVoiceService {
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
-            text: "\\(direction) \\(String(text.prefix(1_760)))",
+            text: "\(direction) \(String(text.prefix(1_760)))",
             model_id: "eleven_v4_turbo",
             voice_settings: .init(stability: 0.40, similarity_boost: 0.84, use_speaker_boost: false)
         ))
@@ -90,7 +90,7 @@ enum VerityVoiceService {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw VerityVoiceError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
-            let detail = String(data: data, encoding: .utf8) ?? "ElevenLabs returned HTTP \\(http.statusCode)."
+            let detail = String(data: data, encoding: .utf8) ?? "ElevenLabs returned HTTP \(http.statusCode)."
             throw VerityVoiceError.requestFailed(http.statusCode, detail)
         }
         guard !data.isEmpty else { throw VerityVoiceError.emptyAudio }
@@ -441,6 +441,8 @@ final class VerityConversationModel: ObservableObject {
         speechGeneration += 1
         let generation = speechGeneration
         speechTask?.cancel()
+        pendingAudioTask?.cancel()
+        pendingAudioTask = nil
         audioPlayer?.stop()
         audioPlayer = nil
         speechSynthesizer.stopSpeaking(at: .immediate)
@@ -534,7 +536,7 @@ final class VerityConversationModel: ObservableObject {
     }
 
     private static func makeSpeechChunks(_ text: String, maximumCharacters: Int = 230) -> [String] {
-        let words = text.split(whereSeparator: \\.isWhitespace)
+        let words = text.split(whereSeparator: \.isWhitespace)
         var chunks: [String] = []
         var current = ""
 
