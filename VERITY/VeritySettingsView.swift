@@ -12,6 +12,7 @@ struct VeritySettingsView: View {
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
     @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityVoiceService.useElevenLabsPreferenceKey) private var useElevenLabsVoice = false
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
     @State private var memoryMessage = ""
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
@@ -38,10 +39,12 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
+                Toggle("Use ElevenLabs voice (adds synthesis time)", isOn: $useElevenLabsVoice)
+                    .disabled(!hasSavedElevenLabsKey)
                 HStack(spacing: 8) {
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "waveform")
                         .foregroundStyle(hasSavedElevenLabsKey ? .green : .secondary)
-                    Text(hasSavedElevenLabsKey ? "Character voice connected" : "Using the fast built-in Mac voice")
+                    Text(hasSavedElevenLabsKey && useElevenLabsVoice ? "Character voice enabled" : "Using the fast built-in Mac voice")
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button("Preview") { Task { await previewSelectedVoice() } }
