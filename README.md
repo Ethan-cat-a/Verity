@@ -44,7 +44,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Tap the microphone, speak naturally, then tap it again to finish.
 - Verity responds through its connected intelligence service and speaks in its selected character voice.
 
-The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses; ordinary questions are sent to NOVA V8.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses; ordinary questions are sent to Verity's connected intelligence service.
 
 ### Configure the Verity voice
 
@@ -56,7 +56,7 @@ The key is stored in macOS Keychain, not in source code, preferences, or GitHub.
 
 ## Trust Center and screen understanding (0.5.0)
 
-Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to NOVA V8 after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; additional app names can be added in Settings.
+Screen understanding is off by default. When enabled, the user chooses a visible window and manually captures one frame. VERITY reads text locally with Apple's Vision framework, shows the screenshot and OCR text for review, and allows the user to edit or redact that text. Only the reviewed text and the user's question are sent to Verity's connected intelligence service after a separate confirmation. The screenshot itself is not uploaded. Password and keychain apps are excluded from the window list by default; additional app names can be added in Settings.
 
 ## Automatic update checks
 
@@ -64,7 +64,7 @@ VERITY checks the official GitHub Releases endpoint on launch and periodically (
 
 ## Document privacy
 
-Document text is extracted locally on your Mac. VERITY asks before sending extracted text and your question to NOVA V8. It does not upload the original file as an attachment.
+Document text is extracted locally on your Mac. VERITY asks before sending extracted text and your question to Verity's connected intelligence service. It does not upload the original file as an attachment.
 
 Supported text extraction includes PDF, TXT, Markdown, CSV, TSV, JSON, HTML, XML, common source-code/text formats, and Word/RTF through macOS `textutil`. The extracted text is capped at 48,000 characters and files at 50 MB. Scanned-PDF OCR and spreadsheet extraction are not included yet.
 
