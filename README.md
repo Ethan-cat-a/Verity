@@ -1,4 +1,4 @@
-# VERITY 0.8.1 — desktop helper
+# VERITY 0.8.2 — desktop helper
 
 VERITY is a native macOS desktop assistant built around a bright yellow smiley-sphere character: glossy shading, simple black oval eyes, and a curved smile. Its normal personality is cheerful and helpful; the horror expression is a separate, brief, occasional idle event.
 
