@@ -98,7 +98,7 @@ enum VerityVoiceService {
         request.timeoutInterval = 30
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: "\(direction) \(String(text.prefix(1_760)))",
-            model_id: "eleven_v4_turbo",
+            model_id: "eleven_v4",
             voice_settings: .init(stability: 0.40, similarity_boost: 0.84, use_speaker_boost: false)
         ))
 
@@ -488,7 +488,7 @@ final class VerityConversationModel: ObservableObject {
 
         do {
             if let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
-                voiceStatus = "VERITY character voice · Eleven v4 Turbo"
+                voiceStatus = "VERITY character voice · Eleven v4"
                 let chunks = Self.makeSpeechChunks(text)
                 guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
 
