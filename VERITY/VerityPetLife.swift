@@ -48,8 +48,8 @@ final class VerityPetLifeModel: ObservableObject {
                 return !name.isEmpty && name != ".DS_Store" && !name.hasPrefix("._")
             }
             guard let snack = candidates.randomElement() else {
-                VerityModel.shared.setStatus("THE TRASH IS EMPTY. EXPECTED. STILL DISAPPOINTING.")
-                VerityModel.shared.showReaction(.angry, duration: 2_000_000_000)
+                VerityModel.shared.setStatus("Hmm, no snacks in here. Maybe next time!")
+                VerityModel.shared.showReaction(.suspicious, duration: 1_400_000_000)
                 return
             }
 
@@ -63,10 +63,10 @@ final class VerityPetLifeModel: ObservableObject {
                 guard VerityModel.shared.isEating else { return }
                 VerityModel.shared.isEating = false
                 VerityModel.shared.setMood(.happy)
-                VerityModel.shared.statusMessage = "Done. Your Trash remains exactly as you left it."
+                VerityModel.shared.statusMessage = "All done! Your file is still right where you left it."
             }
         } catch {
-            VerityModel.shared.setStatus("Trash access denied. I will survive this disappointment.")
+            VerityModel.shared.setStatus("I couldn't peek at the Trash, but that's okay!")
             VerityModel.shared.showReaction(.suspicious, duration: 2_000_000_000)
         }
     }
