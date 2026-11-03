@@ -11,7 +11,7 @@ struct VerityFileInspectorView: View {
     @State private var isShowingTrashConfirmation = false
 
     private var canUnderstand: Bool {
-        VerityResponsesClient.supportedMIMETypes[file.url.pathExtension.lowercased()] != nil
+        VerityNovaClient.supportedExtensions.contains(file.url.pathExtension.lowercased())
     }
 
     var body: some View {
