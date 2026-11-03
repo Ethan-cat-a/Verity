@@ -342,7 +342,7 @@ struct VerityFace: View {
         }
         .frame(width: size, height: size)
         .accessibilityLabel("Verity, a muted gold sphere with a crooked, unsettling grin")
-        .task {
+        .task(id: mood) {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
                 if mood == .eerie { continue }
@@ -402,7 +402,7 @@ struct VerityFace: View {
                         .padding(.bottom, size * 0.018)
                 }
                 .frame(width: size * 0.26, height: size * 0.32)
-        } else if mouthOpen || wideMouth {
+        } else if mouthOpen || wideMouth || mood == .happy {
             openGrin
         } else {
             closedGrin
@@ -424,7 +424,7 @@ struct VerityFace: View {
 
     private var openGrin: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.075, style: .continuous)
+            RoundedRectangle(cornerRadius: size * 0.018, style: .continuous)
                 .fill(Color.black)
                 .frame(width: size * (wideMouth ? 0.48 : 0.39), height: size * (wideMouth ? 0.34 : 0.29))
             Ellipse()
