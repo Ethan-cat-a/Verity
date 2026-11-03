@@ -727,9 +727,10 @@ struct VerityConversationView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    quickAction("Tell me a joke", prompt: "Tell me a joke")
-                    quickAction("Fun fact", prompt: "Tell me a fun fact")
-                    quickAction("What can you do?", prompt: "What can you do?")
+                    quickAction("Explain simply", prompt: "Explain the next topic I ask about in clear, simple steps.")
+                    quickAction("Help me write", prompt: "Help me draft or improve something I'm writing. Ask what it's for if needed.")
+                    quickAction("Summarize", prompt: "Help me summarize a document or text I share.")
+                    quickAction("Tell me a joke", prompt: "Tell me a joke.")
                 }
             }
 
