@@ -20,7 +20,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.1"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.8.2"
     }
 
     var body: some View {
