@@ -638,6 +638,7 @@ private enum VerityScriptedReplies {
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
     let onClose: () -> Void
+    let onCommandPalette: () -> Void
     @State private var draft = ""
 
     var body: some View {
@@ -652,6 +653,15 @@ struct VerityConversationView: View {
                 .buttonStyle(.plain)
                 VerityFace(size: 48, mood: VerityModel.shared.mood)
                     .shadow(color: .orange.opacity(0.16), radius: 7, y: 3)
+                Button(action: onCommandPalette) {
+                    Image(systemName: "command")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 27, height: 27)
+                        .background(.black.opacity(0.06), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("k", modifiers: [.command])
+                .help("Open command palette · Command-K")
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Talk with Verity").font(.system(size: 15, weight: .bold, design: .rounded))
                     Text(model.isListening ? "I'm listening…" : model.isSpeaking ? "Verity is talking…" : model.voiceStatus)
