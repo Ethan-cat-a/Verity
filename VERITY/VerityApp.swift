@@ -30,6 +30,8 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
 struct VerityMenuBarView: View {
     @ObservedObject private var model = VerityModel.shared
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
+    @AppStorage(VerityPrivacyPreferences.blindModeEnabledKey) private var blindModeEnabled = false
+    @AppStorage(VerityPrivacyPreferences.quietPresenceEnabledKey) private var quietPresenceEnabled = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -49,8 +51,12 @@ struct VerityMenuBarView: View {
             Button {
                 VerityPanelController.shared.show()
             } label: {
-                Label("Show Verity", systemImage: "eye")
+                Label("Open VERITY · ⌘⇧V", systemImage: "eye")
             }
+            .keyboardShortcut("v", modifiers: [.command, .shift])
+
+            Toggle("Blind Mode · pause screen reading", isOn: $blindModeEnabled)
+            Toggle("Quiet presence", isOn: $quietPresenceEnabled)
 
             Button {
                 VerityPanelController.shared.hide()
