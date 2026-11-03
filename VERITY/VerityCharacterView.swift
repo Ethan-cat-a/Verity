@@ -8,6 +8,7 @@ struct VerityDesktopView: View {
     @State private var isDropTargeted = false
     @State private var isConversationOpen = false
     @State private var isScreenContextOpen = false
+    @State private var isMemoryManagerOpen = false
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
 
     var body: some View {
@@ -47,6 +48,12 @@ struct VerityDesktopView: View {
         }
         .sheet(isPresented: $isScreenContextOpen) {
             VerityScreenContextSheet()
+        }
+        .sheet(isPresented: $isMemoryManagerOpen) {
+            VerityMemoryManagerView { snapshot in
+                conversation.resumeSession(snapshot)
+                isConversationOpen = true
+            }
         }
     }
 
@@ -124,6 +131,18 @@ struct VerityDesktopView: View {
             .buttonStyle(.plain)
             .help(screenContextEnabled ? "Choose a window for Verity to read" : "Enable this in Settings → Trust Center first")
 
+            Button {
+                isMemoryManagerOpen = true
+            } label: {
+                Label("Memory & sessions", systemImage: "brain")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 35)
+                    .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(.black.opacity(0.07), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
             Label("Double-click the desktop ball to open this window", systemImage: "cursorarrow.click")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.tertiary)
@@ -171,9 +190,10 @@ struct VerityDesktopPetView: View {
                 mood: model.isEating ? .eating : model.mood
             )
             .scaleEffect(model.isEating ? (isChomping ? 1.075 : 0.935) : (isBreathing ? 1.012 : 0.992))
+            .offset(y: isBreathing && !model.isEating ? -1.5 : 1.5)
             .rotationEffect(.degrees(controller.rollAngle + (model.mood == .angry ? -5 : 0)))
             .shadow(color: .orange.opacity(0.24), radius: 12, y: 7)
-            .animation(.linear(duration: 2.5), value: controller.rollAngle)
+            .animation(.easeInOut(duration: 1.7), value: controller.rollAngle)
             .animation(.spring(response: 0.15, dampingFraction: 0.50), value: isChomping)
             .animation(.spring(response: 0.36, dampingFraction: 0.65), value: model.mood)
             .contentShape(Circle())
@@ -248,10 +268,15 @@ struct VerityDesktopPetView: View {
                 previousTranslation = value.translation
                 controller.dragPet(by: delta)
             }
-            .onEnded { _ in
+            .onEnded { value in
                 isDragging = false
                 previousTranslation = .zero
-                controller.endUserDrag()
+                let predicted = value.predictedEndTranslation
+                let extra = CGSize(
+                    width: (predicted.width - value.translation.width) * 3.6,
+                    height: (predicted.height - value.translation.height) * 3.6
+                )
+                controller.endUserDrag(withVelocity: extra)
                 conversation.reactAfterBeingDragged()
             }
     }
