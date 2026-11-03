@@ -186,10 +186,10 @@ struct VerityDesktopView: View {
         case .shocked: return "Oh! I wasn't expecting that."
         case .suspicious: return "Hmm. Something isn't quite right."
         case .angry: return "Oh dear. That wasn't a good idea."
-        case .manic, .excited: return "YES! I knew I could help!"
+        case .manic, .excited: return "Good. We're making progress."
         case .sleepy: return "A tiny break? Oh, all right. I'm ready now!"
         case .eating: return "Ooh, what's this?"
-        case .happy: return "Hellooooo! I'm Verity, your personal helper friend!"
+        case .happy: return "Hello. What can I help you with?"
         case .eerie: return "..."
         }
     }
