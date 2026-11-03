@@ -1,10 +1,10 @@
-# VERITY 0.4.1 — your chaotic desktop companion
+# VERITY 0.4.2 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, an unnervingly wide toothy grin, and a collection of expressive reactions. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-**[Download VERITY 0.4.1 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.1-macOS.dmg)**
+**[Download VERITY 0.4.2 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.2-macOS.dmg)**
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
