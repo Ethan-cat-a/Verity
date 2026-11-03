@@ -17,6 +17,7 @@
 		A10000000000000000000009 /* DocumentAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* DocumentAssistantView.swift */; };
 		A1000000000000000000000A /* VeritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* VeritySettingsView.swift */; };
 		A1000000000000000000000B /* VerityConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* VerityConversation.swift */; };
+		A1000000000000000000000C /* VerityPetLife.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* VerityPetLife.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		B10000000000000000000012 /* DocumentAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentAssistantView.swift; sourceTree = "<group>"; };
 		B10000000000000000000013 /* VeritySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeritySettingsView.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* VerityConversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityConversation.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* VerityPetLife.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityPetLife.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +71,7 @@
 				B10000000000000000000012 /* DocumentAssistantView.swift */,
 				B10000000000000000000013 /* VeritySettingsView.swift */,
 				B10000000000000000000014 /* VerityConversation.swift */,
+				B10000000000000000000015 /* VerityPetLife.swift */,
 				B10000000000000000000007 /* Info.plist */,
 			);
 			path = VERITY;
@@ -151,6 +154,7 @@
 				A10000000000000000000009 /* DocumentAssistantView.swift in Sources */,
 				A1000000000000000000000A /* VeritySettingsView.swift in Sources */,
 				A1000000000000000000000B /* VerityConversation.swift in Sources */,
+				A1000000000000000000000C /* VerityPetLife.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -194,14 +198,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VERITY/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -218,14 +222,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VERITY/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

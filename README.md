@@ -1,10 +1,10 @@
-# VERITY 0.4.2 — your chaotic desktop companion
+# VERITY 0.4.3 — your chaotic desktop companion
 
 VERITY is a native macOS desktop companion with the unmistakable yellow Verity sphere: oversized black eyes, an unnervingly wide toothy grin, and a collection of expressive reactions. NOVA V8 powers its intelligence.
 
 ## Download VERITY — no Xcode required
 
-**[Download VERITY 0.4.2 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.2-macOS.dmg)**
+**[Download VERITY 0.4.3 for macOS (.dmg)](https://github.com/Ethan-cat-a/Verity/releases/latest/download/VERITY-0.4.3-macOS.dmg)**
 
 1. Download and open the DMG.
 2. Drag **VERITY.app** into the **Applications** shortcut.
@@ -24,6 +24,14 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Separate shocked, suspicious, angry, sleepy, and manic expressions.
 - Automatic face reactions during document drops, voice conversations, jokes, and errors.
 - Native macOS app icon generated to match Verity.
+
+## Chaotic pet life
+
+- Verity wanders around the screen while idle, smoothly gliding between random spots.
+- Drag the yellow sphere to move it; it spins while being dragged and delivers a grumpy scripted line when released.
+- Idle animation is a gentle breathing motion plus occasional blinks.
+- When hungry, Verity may sample a random item name from your user Trash for a chomping gag.
+- **Trash snacks are visual only.** It reads only the filename and never opens, deletes, moves, renames, or restores the item. Disable "Let Verity snack from Trash" in Settings to turn this off.
 
 ## Talk with Verity
 

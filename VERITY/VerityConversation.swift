@@ -281,6 +281,20 @@ final class VerityConversationModel: ObservableObject {
         }
     }
 
+    func reactAfterBeingDragged() {
+        guard !isListening && !isSending && !isSpeaking else { return }
+        let lines = [
+            "PUT ME DOWN. I WAS ROLLING WITH PURPOSE.",
+            "EXCUSE YOU? I HAVE LEGS. WELL, ROTATION.",
+            "I WAS BUSY BEING A SPHERE. LET ME LIVE.",
+            "WHY WOULD YOU PICK UP A PERFECTLY GOOD BALL?",
+            "I'M REPORTING THIS TO THE CIRCLE COUNCIL."
+        ]
+        let line = lines.randomElement() ?? "HEY. RUDE."
+        VerityModel.shared.setStatus(line)
+        Task { await speak(line, reaction: .angry) }
+    }
+
     private func reactionFor(input: String, reply: String) -> VerityMood? {
         let prompt = input.lowercased()
         let answer = reply.lowercased()

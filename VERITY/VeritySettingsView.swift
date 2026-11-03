@@ -8,9 +8,10 @@ struct VeritySettingsView: View {
     @State private var elevenLabsKey = ""
     @State private var hasSavedElevenLabsKey = false
     @State private var voiceMessage = ""
+    @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.4.3"
     }
 
     var body: some View {
@@ -31,7 +32,15 @@ struct VeritySettingsView: View {
                     .font(.caption)
             }
 
-            Section("Verity voice · ElevenLabs") {
+            Section("Verity's chaotic pet life") {
+                Toggle("Let Verity snack from Trash", isOn: $trashSnacksEnabled)
+                Text("When hungry, Verity occasionally picks a random item name from your user Trash and performs a chomping animation. It only reads the filename. It never opens, deletes, moves, renames, or restores the item. Turn this off any time.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Label("Verity wanders around your desktop while idle. Drag its face to move it; it complains when you let go.", systemImage: "move.3d")
+                    .font(.callout)
+            }
+
+            Section("Verity voice · ElevenLabs")
                 HStack(spacing: 9) {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
@@ -81,7 +90,7 @@ struct VeritySettingsView: View {
         }
         .formStyle(.grouped)
         .padding(16)
-        .frame(width: 560, height: 590)
+        .frame(width: 560, height: 650)
         .navigationTitle("Verity Settings")
         .task { refreshVoiceKeyStatus(); await checkConnection() }
     }

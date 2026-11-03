@@ -3,10 +3,14 @@ import UniformTypeIdentifiers
 
 struct VerityDesktopView: View {
     @ObservedObject private var model = VerityModel.shared
+    @ObservedObject private var panelController = VerityPanelController.shared
     @StateObject private var conversation = VerityConversationModel()
+    @StateObject private var petLife = VerityPetLifeModel()
     @State private var isDropTargeted = false
     @State private var isFloating = false
     @State private var isConversationOpen = false
+    @State private var isDraggingCharacter = false
+    @State private var previousDragTranslation = CGSize.zero
 
     var body: some View {
         ZStack {
@@ -32,7 +36,15 @@ struct VerityDesktopView: View {
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: model.currentFile?.id)
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: isConversationOpen)
         .onAppear {
-            withAnimation(.easeInOut(duration: 2.1).repeatForever(autoreverses: true)) { isFloating = true }
+            petLife.start()
+            VerityPanelController.shared.setWanderingPaused(false)
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) { isFloating = true }
+        }
+        .onChange(of: isConversationOpen) { value in
+            VerityPanelController.shared.setWanderingPaused(value || model.currentFile != nil)
+        }
+        .onChange(of: model.currentFile?.id) { value in
+            VerityPanelController.shared.setWanderingPaused(value != nil || isConversationOpen)
         }
         .onDrop(of: [UTType.fileURL], isTargeted: $isDropTargeted) { providers in
             FileDropHandler.handle(providers) { url in
@@ -123,7 +135,7 @@ struct VerityDesktopView: View {
             }
             .buttonStyle(.plain)
 
-            Label("Or drop a file on me to read it", systemImage: "doc.text.magnifyingglass")
+            Label("Drag my face to move me · Drop a file to feed me", systemImage: "hand.draw")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.tertiary)
 
@@ -134,8 +146,33 @@ struct VerityDesktopView: View {
         .contentShape(Rectangle())
     }
 
+    private var characterDragGesture: some Gesture {
+        DragGesture(minimumDistance: 5)
+            .onChanged { value in
+                if !isDraggingCharacter {
+                    isDraggingCharacter = true
+                    previousDragTranslation = .zero
+                    VerityPanelController.shared.beginUserDrag()
+                    model.setMood(.excited)
+                }
+                let delta = CGSize(
+                    width: value.translation.width - previousDragTranslation.width,
+                    height: value.translation.height - previousDragTranslation.height
+                )
+                previousDragTranslation = value.translation
+                VerityPanelController.shared.dragPanel(by: delta)
+            }
+            .onEnded { _ in
+                isDraggingCharacter = false
+                previousDragTranslation = .zero
+                VerityPanelController.shared.endUserDrag()
+                conversation.reactAfterBeingDragged()
+            }
+    }
+
     private var homeCaption: String {
         if isDropTargeted { return "GIVE ME THE FILE." }
+        if isDraggingCharacter { return "WHEEEEE— WAIT. PUT ME DOWN." }
         switch model.mood {
         case .listening: return "I'm listening."
         case .thinking: return "Processing. Be patient."
@@ -146,7 +183,7 @@ struct VerityDesktopView: View {
         case .manic, .excited: return "LET'S GOOOO."
         case .sleepy: return "five more minutes..."
         case .eating: return "NOM NOM NOM."
-        case .happy: return "Hey. It's me. It's Verity."
+        case .happy: return petLife.hungerLevel > 0.7 ? "FEED ME, COWARD." : "Hey. It's me. It's Verity."
         }
     }
 }
