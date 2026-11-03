@@ -321,6 +321,7 @@ final class VerityConversationModel: ObservableObject {
     }
 }
 
+@MainActor
 private enum VerityScriptedReplies {
     static func reply(for rawText: String) -> String? {
         let text = rawText.lowercased()
