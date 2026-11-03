@@ -17,8 +17,6 @@
 		A10000000000000000000009 /* DocumentAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* DocumentAssistantView.swift */; };
 		A1000000000000000000000A /* VeritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* VeritySettingsView.swift */; };
 		A1000000000000000000000B /* VerityConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* VerityConversation.swift */; };
-		A1000000000000000000000C /* VerityPetLife.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* VerityPetLife.swift */; };
-		A1000000000000000000000D /* VerityScreenContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* VerityScreenContext.swift */; };
 		A1000000000000000000000E /* VerityUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* VerityUpdateChecker.swift */; };
 		A1000000000000000000000F /* VerityMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* VerityMemory.swift */; };
 		A10000000000000000000010 /* VerityResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* VerityResponseParser.swift */; };
@@ -40,8 +38,6 @@
 		B10000000000000000000012 /* DocumentAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentAssistantView.swift; sourceTree = "<group>"; };
 		B10000000000000000000013 /* VeritySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeritySettingsView.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* VerityConversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityConversation.swift; sourceTree = "<group>"; };
-		B10000000000000000000015 /* VerityPetLife.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityPetLife.swift; sourceTree = "<group>"; };
-		B10000000000000000000016 /* VerityScreenContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenContext.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* VerityUpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityUpdateChecker.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* VerityMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemory.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* VerityResponseParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityResponseParser.swift; sourceTree = "<group>"; };
@@ -81,8 +77,6 @@
 				B10000000000000000000012 /* DocumentAssistantView.swift */,
 				B10000000000000000000013 /* VeritySettingsView.swift */,
 				B10000000000000000000014 /* VerityConversation.swift */,
-				B10000000000000000000015 /* VerityPetLife.swift */,
-				B10000000000000000000016 /* VerityScreenContext.swift */,
 				B10000000000000000000017 /* VerityUpdateChecker.swift */,
 				B10000000000000000000018 /* VerityMemory.swift */,
 				B10000000000000000000019 /* VerityResponseParser.swift */,
@@ -169,8 +163,6 @@
 				A10000000000000000000009 /* DocumentAssistantView.swift in Sources */,
 				A1000000000000000000000A /* VeritySettingsView.swift in Sources */,
 				A1000000000000000000000B /* VerityConversation.swift in Sources */,
-				A1000000000000000000000C /* VerityPetLife.swift in Sources */,
-				A1000000000000000000000D /* VerityScreenContext.swift in Sources */,
 				A1000000000000000000000E /* VerityUpdateChecker.swift in Sources */,
 				A1000000000000000000000F /* VerityMemory.swift in Sources */,
 				A10000000000000000000010 /* VerityResponseParser.swift in Sources */,
