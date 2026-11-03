@@ -192,13 +192,13 @@ final class VerityPanelController: ObservableObject {
         let scale = min(1.0, 1050.0 / initialSpeed)
         var vx = velocity.width * scale
         var vy = -velocity.height * scale
-        let frameInterval = 0.016
+        let frameInterval: CGFloat = 0.016
         let radius = max(1.0, petSize.width * 0.34)
 
         inertiaTask?.cancel()
         inertiaTask = Task { @MainActor [weak self, weak petPanel] in
             guard let self, let petPanel else { return }
-            var elapsed = 0.0
+            var elapsed: CGFloat = 0
             while elapsed < 0.9 && !Task.isCancelled && !self.isWanderingPaused {
                 var frame = petPanel.frame
                 let bounds = self.screenForFrame(frame).visibleFrame.insetBy(dx: self.edgePadding, dy: self.edgePadding)

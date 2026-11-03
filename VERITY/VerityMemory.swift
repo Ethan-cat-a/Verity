@@ -459,6 +459,8 @@ struct VerityMemoryEditorView: View {
                     Text(item.title).tag(item)
                 }
             }
+            Text("Saved memories are stored locally. Do not save passwords, one-time codes, API keys, or payment details.")
+                .font(.caption).foregroundStyle(.secondary)
             TextEditor(text: $content)
                 .font(.system(size: 13))
                 .frame(minHeight: 170)

@@ -30,7 +30,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 ## Chaotic desktop pet
 
 - Verity now appears as a transparent, borderless desktop ball rather than living inside the large card window.
-- It smoothly wanders to random positions across your available displays, like a desktop goose.
+- It wanders naturally within the current display, following short curved paths with eased starts and stops. It no longer jumps to a random monitor.\n- Dragging gives the ball a small, damped roll with momentum; rotation follows the distance travelled.
 - Drag the ball itself to roll it around. It says a randomly selected grumpy line when you release it.
 - Double-click the ball to open the full conversation and document window. Right-click for desktop-pet options.
 - Idle animation uses a subtle breath, occasional natural blink, and a simple curved smile. Eating and talking keep the separate two-frame toothy jaw animation.
@@ -44,7 +44,7 @@ The app bundle is ad-hoc signed and verified during packaging, but it is not sig
 - Tap the microphone, speak naturally, then tap it again to finish.
 - Verity responds through its connected intelligence service and speaks in its selected character voice.
 
-The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses; ordinary questions are sent to Verity's connected intelligence service.
+The conversation also supports typed messages. Short greetings, jokes, fun facts, and basic capability questions have local scripted responses. Replies display partial text when the connected service supports streaming, and the chat can stay usable while Verity speaks.
 
 ### Configure the Verity voice
 
@@ -52,7 +52,15 @@ The conversation also supports typed messages. Short greetings, jokes, fun facts
 2. Create an API key in [ElevenLabs API settings](https://elevenlabs.io/app/settings/api-keys).
 3. Paste it into the ElevenLabs field in Verity Settings and choose **Save securely**.
 
-The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Until a key is configured, Verity uses the Mac's built-in speech voice.
+The key is stored in macOS Keychain, not in source code, preferences, or GitHub. Choose between three original character-style presets and adjust speaking pace in Settings. The default is a bright, high-energy cartoon voice; it is an original preset, not a copy of the credited performer. Without a key, Verity uses the Mac voice with a slightly higher pitch and livelier pace.
+
+## Memory & context (0.6.0)
+
+Verity remembers only information you explicitly ask it to save. In chat, start a message with **“Remember that…”** to save a note. Use **Memory & sessions** to search, edit, pin, or delete saved entries, or to clear all memories.
+
+Memories are stored as a local JSON file in the user's Application Support directory. When memory use is enabled, Verity selects a small number of relevant saved entries for a conversation; it does not send the entire memory archive. You can turn memory use off in the Memory Manager at any time. Do not save passwords, one-time codes, API keys, or payment details.
+
+Use **Save session** in chat to snapshot the last part of a conversation. Resume or delete saved sessions from the Sessions tab. A snapshot contains the selected chat messages and a simple goal/next-step note; it does not restore other applications or unsaved files.
 
 ## Trust Center and screen understanding (0.5.0)
 
