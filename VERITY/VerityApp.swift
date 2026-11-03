@@ -61,13 +61,13 @@ struct VerityMenuBarView: View {
             Button {
                 VerityPanelController.shared.showPetAgain()
             } label: {
-                Label("Show desktop pet", systemImage: "pawprint")
+                Label("Show desktop helper", systemImage: "pawprint")
             }
 
             Button {
                 VerityPanelController.shared.hidePet()
             } label: {
-                Label("Hide desktop pet", systemImage: "eye.slash")
+                Label("Hide desktop helper", systemImage: "eye.slash")
             }
 
             Button {
