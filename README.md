@@ -12,7 +12,13 @@ VERITY is a tiny yellow desktop companion that acts like it knows everything. Cl
 2. Drag **VERITY.app** into **Applications**.
 3. Eject the disk image and launch VERITY.
 
-This self-built app is ad-hoc signed, not Developer ID signed or notarized. On a Mac that blocks it, use the one-time quarantine approval command shown in the release instructions. Only do this for a build downloaded from this official repository.
+This self-built app is ad-hoc signed, not Developer ID signed or notarized. If macOS blocks a copy downloaded from this official repository, install it into Applications, then run this one-time command in Terminal:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/VERITY.app
+```
+
+This clears the quarantine flag only for the installed VERITY app; it does not disable Gatekeeper system-wide.
 
 ## The whole idea
 
