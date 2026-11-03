@@ -2,12 +2,14 @@
 import SwiftUI
 
 struct VeritySettingsView: View {
-    @State private var connectionStatus = "Checking NOVA V8…"
+    @State private var connectionStatus = "Checking connection…"
     @State private var isConnected = false
     @State private var isChecking = false
     @State private var elevenLabsKey = ""
     @State private var hasSavedElevenLabsKey = false
     @State private var voiceMessage = ""
+    @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
+    @AppStorage(VerityVoiceService.speedPreferenceKey) private var voiceSpeed = 1.08
     @AppStorage(VerityPetLifeModel.trashSnacksPreferenceKey) private var trashSnacksEnabled = true
     @AppStorage(VerityPrivacyPreferences.screenContextEnabledKey) private var screenContextEnabled = false
     @AppStorage(VerityPrivacyPreferences.excludedAppsKey) private var excludedAppsRaw = "Passwords, Keychain Access, 1Password, Bitwarden, LastPass"
@@ -15,7 +17,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.5.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.6.0"
     }
 
     var body: some View {
@@ -25,15 +27,14 @@ struct VeritySettingsView: View {
                     Circle().fill(isConnected ? Color.green : Color.orange).frame(width: 9, height: 9)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(connectionStatus).font(.system(size: 13, weight: .semibold))
-                        Text("NOVA V8 powers Verity's conversations and document understanding.")
+                        Text("Verity handles conversations, documents, and saved context.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Button(isChecking ? "Checking…" : "Test") { Task { await checkConnection() } }
                         .disabled(isChecking)
                 }
-                Link("Open NOVA V8", destination: URL(string: "https://nova-v8.vercel.app")!)
-                    .font(.caption)
+                Text("Connection is handled securely by Verity.").font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Verity's chaotic pet life") {
@@ -47,13 +48,13 @@ struct VeritySettingsView: View {
 
             Section("Trust Center") {
                 Toggle("Allow screen understanding", isOn: $screenContextEnabled)
-                Text("Off by default. When enabled, Verity can capture one window only after you choose it and press Capture. Text is read locally, shown for review, and sent to NOVA V8 only after you confirm. No background screen recording.")
+                Text("Off by default. When enabled, Verity can capture one window only after you choose it and press Capture. Text is read locally, shown for review, and sent only after you confirm. No background screen recording.")
                     .font(.caption).foregroundStyle(.secondary)
                 TextField("Excluded apps (comma-separated)", text: $excludedAppsRaw)
                     .textFieldStyle(.roundedBorder)
                 Text("Password and keychain apps are excluded by default. Add any other app names you never want to appear in the capture list.")
                     .font(.caption).foregroundStyle(.secondary)
-                Label("The screenshot stays on this Mac. Only the OCR text you review is sent to NOVA V8 after confirmation.", systemImage: "hand.raised.fill")
+                Label("The screenshot stays on this Mac. Only the OCR text you review is sent after confirmation.", systemImage: "hand.raised.fill")
                     .font(.callout)
             }
 
@@ -95,12 +96,26 @@ struct VeritySettingsView: View {
                 HStack(spacing: 9) {
                     Image(systemName: "waveform").font(.title2).foregroundStyle(.orange)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Callie · Friendly and sweet").font(.system(size: 13, weight: .semibold))
-                        Text("Eleven Flash · expressive, low-latency speech").font(.caption).foregroundStyle(.secondary)
+                        Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.title ?? "Bright cartoon").font(.system(size: 13, weight: .semibold))
+                        Text("Expressive, low-latency character speech").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "key")
                         .foregroundStyle(hasSavedElevenLabsKey ? .green : .secondary)
+                }
+                Picker("Character voice", selection: $selectedVoiceID) {
+                    ForEach(VerityVoiceOption.all) { voice in
+                        Text(voice.title).tag(voice.id)
+                    }
+                }
+                Text(VerityVoiceOption.all.first(where: { $0.id == selectedVoiceID })?.detail ?? "Expressive cartoon-character voice.")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Text("Speaking pace")
+                    Slider(value: $voiceSpeed, in: 0.90...1.20, step: 0.02)
+                    Text(String(format: "%.2fx", voiceSpeed))
+                        .font(.caption.monospacedDigit())
+                        .frame(width: 44, alignment: .trailing)
                 }
                 SecureField("ElevenLabs API key", text: $elevenLabsKey)
                     .textFieldStyle(.roundedBorder)
@@ -124,7 +139,7 @@ struct VeritySettingsView: View {
             }
 
             Section("Voice privacy") {
-                Label("The microphone is used only while you activate the talk control. Speech recognition creates a transcript, which is sent to NOVA V8 for a reply.", systemImage: "mic.badge.waveform")
+                Label("The microphone is used only while you activate the talk control. Speech recognition creates a transcript, which Verity uses to respond.", systemImage: "mic.badge.waveform")
                     .font(.callout)
                 Text("Spoken replies are sent to ElevenLabs for voice synthesis when a key is configured. Document text is still extracted locally and requires its separate send confirmation.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -132,8 +147,8 @@ struct VeritySettingsView: View {
 
             Section("About") {
                 LabeledContent("Application", value: "VERITY")
-                LabeledContent("Intelligence", value: "NOVA V8")
-                LabeledContent("Voice", value: "ElevenLabs · Callie")
+                LabeledContent("Intelligence", value: "VERITY")
+                LabeledContent("Voice", value: "ElevenLabs · Character voice")
                 LabeledContent("Version", value: appVersion)
                 Text("A small, expressive desktop companion for conversations and files.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -194,13 +209,13 @@ struct VeritySettingsView: View {
             let health = try await VerityNovaClient().healthCheck()
             if health.ok == true && health.keyConfigured == true {
                 isConnected = true
-                connectionStatus = "NOVA V8 connected"
+                connectionStatus = "Connected"
             } else if health.ok == true {
                 isConnected = false
-                connectionStatus = "NOVA V8 online · server key needs attention"
+                connectionStatus = "Online · service key needs attention"
             } else {
                 isConnected = false
-                connectionStatus = "NOVA V8 needs attention"
+                connectionStatus = "Connection needs attention"
             }
         } catch {
             isConnected = false

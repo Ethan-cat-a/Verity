@@ -159,7 +159,7 @@ final class VerityScreenContextModel: ObservableObject {
 
         isAsking = true
         errorMessage = nil
-        answer = "Verity is asking NOVA V8…"
+        answer = "Verity is thinking…"
         Task { @MainActor [weak self] in
             guard let self else { return }
             defer { isAsking = false }
@@ -262,13 +262,13 @@ struct VerityScreenContextSheet: View {
                 HStack {
                     Text(model.status).font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Send reviewed text to NOVA V8") { isConfirmingSend = true }
+                    Button("Send reviewed text") { isConfirmingSend = true }
                         .buttonStyle(.borderedProminent)
                         .disabled(model.isAsking || model.extractedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
                 if model.isAsking {
-                    ProgressView("Asking NOVA V8…").controlSize(.small)
+                    ProgressView("Thinking…").controlSize(.small)
                 }
                 if !model.answer.isEmpty {
                     ScrollView {
@@ -297,13 +297,13 @@ struct VerityScreenContextSheet: View {
                 await model.refreshWindows(excludingAppNames: excludedAppNames)
             }
         }
-        .alert("Send selected screen text to NOVA V8?", isPresented: $isConfirmingSend) {
+        .alert("Send selected screen text to Verity?", isPresented: $isConfirmingSend) {
             Button("Cancel", role: .cancel) {}
             Button("Send reviewed text") {
                 model.ask(question: question)
             }
         } message: {
-            Text("Only the OCR text shown above and your question are sent. The screenshot itself stays on this Mac. Continue?")
+            Text("Only the OCR text shown above and your question are sent to your assistant service. The screenshot itself stays on this Mac. Continue?")
         }
     }
 }

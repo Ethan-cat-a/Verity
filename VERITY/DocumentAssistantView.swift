@@ -28,7 +28,7 @@ struct VerityDocumentAssistantSheet: View {
                     .keyboardShortcut(.cancelAction)
             }
 
-            Label("The file is read locally first. Extracted text is sent to NOVA V8 only after you confirm.", systemImage: "lock.shield")
+            Label("The file is read locally first. Extracted text is sent only after you confirm.", systemImage: "lock.shield")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(10)
@@ -65,7 +65,7 @@ struct VerityDocumentAssistantSheet: View {
                     Spacer()
                     if assistant.isWorking {
                         ProgressView().controlSize(.small)
-                        Text("Asking NOVA V8…")
+                        Text("Thinking…")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -109,14 +109,14 @@ struct VerityDocumentAssistantSheet: View {
         .padding(18)
         .frame(minWidth: 570, minHeight: 560)
         .task { await assistant.checkConnection() }
-        .alert("Send extracted text to NOVA V8?", isPresented: $isShowingUploadConfirmation) {
+        .alert("Send extracted text to Verity?", isPresented: $isShowingUploadConfirmation) {
             Button("Cancel", role: .cancel) { pendingPrompt = nil }
-            Button("Send to NOVA V8") {
+            Button("Send reviewed text") {
                 hasConfirmedUpload = true
                 runPendingPrompt()
             }
         } message: {
-            Text("Verity will extract text from “\(file.name)” on your Mac and send that text with your question to NOVA V8. The original file is not uploaded. Continue?")
+            Text("Verity will extract text from “\(file.name)” on your Mac and send that text with your question to Verity. The original file is not uploaded. Continue?")
         }
     }
 
