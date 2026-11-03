@@ -26,7 +26,7 @@ final class VerityModel: ObservableObject {
     static let shared = VerityModel()
 
     @Published var currentFile: VerityFile?
-    @Published var statusMessage = "Ready. Ask me something useful."
+    @Published var statusMessage = "Hi! I'm Verity. What can I help you with?"
     @Published var lastEatenFileName: String?
     @Published var isEating = false
     @Published var mood: VerityMood = .happy
@@ -36,7 +36,7 @@ final class VerityModel: ObservableObject {
 
     func accept(fileURL: URL) {
         guard fileURL.isFileURL else {
-            statusMessage = "That isn't a file I can eat."
+            statusMessage = "Hmm, I couldn't open that file. Could you try another one?"
             showReaction(.shocked)
             return
         }
@@ -47,7 +47,7 @@ final class VerityModel: ObservableObject {
         // Keep security-scoped access alive while the file inspector is open.
         currentFile = VerityFile(url: fileURL)
         lastEatenFileName = fileURL.lastPathComponent
-        statusMessage = "A file. At last, something worth opening: \(fileURL.lastPathComponent)."
+        statusMessage = "Ooh, a new file! Let's see what we've got: \(fileURL.lastPathComponent)." 
         isEating = true
         mood = .eating
 
@@ -56,7 +56,7 @@ final class VerityModel: ObservableObject {
             guard let self else { return }
             self.isEating = false
             self.mood = .happy
-            self.statusMessage = "Done. Ask me what it says."
+            self.statusMessage = "All done! Ask me anything about the file."
         }
     }
 
@@ -64,7 +64,7 @@ final class VerityModel: ObservableObject {
         releaseCurrentFileAccess()
         currentFile = nil
         mood = .happy
-        statusMessage = "Closed. Drop another file when you need me."
+        statusMessage = "No problem! I'm ready for the next thing."
     }
 
     /// Balances the security-scoped access acquired for the currently open file.
