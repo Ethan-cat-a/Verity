@@ -312,7 +312,7 @@ struct VerityFace: View {
                 .offset(y: size * 0.185)
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Verity, a yellow smiley sphere with an exaggerated toothy grin")
+        .accessibilityLabel("Verity, a yellow smiley sphere with a simple curved smile")
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
@@ -386,12 +386,16 @@ struct VerityFace: View {
     }
 
     private var closedGrin: some View {
-        ZStack(alignment: .top) {
-            VeritySmileCavityShape().fill(Color.black)
-            toothRow(count: 7, toothHeight: size * 0.052)
-                .padding(.top, size * 0.035)
-        }
-        .frame(width: size * 0.62, height: size * 0.225)
+        VerityClosedSmileShape()
+            .stroke(
+                Color.black,
+                style: StrokeStyle(
+                    lineWidth: max(2, size * 0.018),
+                    lineCap: .round,
+                    lineJoin: .round
+                )
+            )
+            .frame(width: size * 0.32, height: size * 0.085)
     }
 
     private var openGrin: some View {
@@ -429,6 +433,18 @@ struct VerityFace: View {
                     )
             }
         }
+    }
+}
+
+private struct VerityClosedSmileShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.04, y: rect.minY + rect.height * 0.18))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - rect.width * 0.04, y: rect.minY + rect.height * 0.18),
+            control: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.92)
+        )
+        return path
     }
 }
 
