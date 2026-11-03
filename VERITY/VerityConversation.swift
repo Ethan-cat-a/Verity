@@ -416,13 +416,13 @@ final class VerityConversationModel: ObservableObject {
     func reactAfterBeingDragged() {
         guard !isListening && !isSending && !isSpeaking else { return }
         let lines = [
-            "That was unnecessary. I was perfectly positioned.",
-            "You could have simply clicked me.",
-            "I am a desktop assistant, not a stress ball.",
-            "Hands off. I have a job to do.",
-            "Please interact with the interface like a civilized person."
+            "Hey! You can just click me whenever you need help.",
+            "Need something? I'm right here!",
+            "Ooh, what can I help you with?",
+            "Here I am! Ask me anything.",
+            "I'm your helper friend. What are we doing?"
         ]
-        let line = lines.randomElement() ?? "Unnecessary. I was perfectly positioned."
+        let line = lines.randomElement() ?? "Hi! What can I help you with?"
         VerityModel.shared.setStatus(line)
         startSpeaking(line, reaction: .angry)
     }
