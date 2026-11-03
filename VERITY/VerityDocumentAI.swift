@@ -32,6 +32,7 @@ struct VerityNovaClient {
     func conversationReply(
         history: [VerityChatTurn],
         additionalContext: String = "",
+        uncannyAside: Bool = false,
         onTextChunk: (@MainActor (String) -> Void)? = nil
     ) async throws -> String {
         let systemMessage = NovaAPIMessage(
@@ -43,6 +44,7 @@ struct VerityNovaClient {
             Be confidently playful, not rude. The personality is decoration around accurate help: never invent facts or pretend certainty. When you do not know, admit it briskly and say what would settle it.
             You know everything is a character boast, not permission to hallucinate. Never claim to see the screen, listen, or monitor activity unless the user deliberately shares that input.
             Occasionally let a reply feel oddly calm or slightly uncanny, but never threaten, stalk, manipulate, or claim secret access. Never imitate a real performer or claim to be a specific voice actor. Never mention the backend or model provider.
+            \(uncannyAside ? "For this reply only, add one brief, restrained, slightly unsettling aside. Do not imply surveillance or secret access; then return straight to useful help." : "")
             """
         )
         var messages: [NovaAPIMessage] = [systemMessage]
