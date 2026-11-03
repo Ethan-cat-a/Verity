@@ -12,6 +12,8 @@ struct VeritySettingsView: View {
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
     @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
+    @State private var memoryMessage = ""
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
     @AppStorage(VerityUpdateChecker.automaticInstallKey) private var automaticUpdateInstall = true
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
@@ -61,6 +63,19 @@ struct VeritySettingsView: View {
                     Text(voiceMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
                 Text("The key is stored in macOS Keychain. Without it, Verity uses the built-in Mac voice for the fastest response.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Memory") {
+                Toggle("Use things I explicitly asked you to remember", isOn: $memoryEnabled)
+                Button("Clear saved memories", role: .destructive) {
+                    VerityMemoryStore.shared.clearMemories()
+                    memoryMessage = "Saved memories cleared."
+                }
+                if !memoryMessage.isEmpty {
+                    Text(memoryMessage).font(.caption).foregroundStyle(.secondary)
+                }
+                Text("Verity only saves a note when you say “remember that…”.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
