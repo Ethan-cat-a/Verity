@@ -2,6 +2,10 @@ import Foundation
 import AppKit
 import Combine
 
+enum VerityCharacterPreferences {
+    static let eerieIdleEnabledKey = "verity.eerieIdleEnabled"
+}
+
 struct VerityFile: Identifiable {
     let id = UUID()
     let url: URL
