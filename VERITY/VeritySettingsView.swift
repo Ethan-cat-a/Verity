@@ -1,101 +1,82 @@
 import SwiftUI
 
 struct VeritySettingsView: View {
-    @AppStorage("verity.model") private var modelID = "gpt-6-luna"
-    @State private var apiKeyDraft = ""
-    @State private var hasSavedKey = false
-    @State private var feedback = ""
-    @State private var isError = false
+    @State private var connectionStatus = "Checking NOVA V8…"
+    @State private var isConnected = false
+    @State private var isChecking = false
 
     var body: some View {
         Form {
-            Section("AI brain") {
-                Picker("OpenAI model", selection: $modelID) {
-                    Text("GPT-6 Luna — efficient").tag("gpt-6-luna")
-                    Text("GPT-6.1 Terra — balanced").tag("gpt-6.1-terra")
-                    Text("GPT-6.1 Sol — advanced").tag("gpt-6.1-sol")
-                    Text("GPT-6 Astra — flagship").tag("gpt-6-astra")
-                }
-                .pickerStyle(.menu)
-
-                SecureField("OpenAI API key", text: $apiKeyDraft)
-                    .textFieldStyle(.roundedBorder)
-
-                HStack {
-                    Button("Save API key") { saveKey() }
-                        .disabled(apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    if hasSavedKey {
-                        Button("Remove saved key", role: .destructive) { removeKey() }
+            Section("VERITY intelligence") {
+                HStack(spacing: 9) {
+                    Circle()
+                        .fill(isConnected ? Color.green : Color.orange)
+                        .frame(width: 9, height: 9)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(connectionStatus)
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("VERITY uses NOVA V8 as its AI brain.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Text(hasSavedKey ? "Key stored in Keychain" : "No API key saved")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Button(isChecking ? "Checking…" : "Test connection") {
+                        Task { await checkConnection() }
+                    }
+                    .disabled(isChecking)
                 }
 
-                Link("Get an OpenAI API key", destination: URL(string: "https://platform.openai.com/api-keys")!)
+                Link("NOVA V8 service", destination: URL(string: "https://nova-v8.vercel.app")!)
                     .font(.caption)
-
-                Text("API usage is billed separately by OpenAI. Verity stores the key in macOS Keychain, not in its project files or preferences.")
+                Text("No separate AI API key is needed in VERITY. Requests use the existing NOVA V8 server, which keeps its provider credentials on the server.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Section("Document privacy") {
-                Label("A document is only sent to OpenAI after you choose an analysis action and confirm.", systemImage: "lock.shield")
+                Label("Files are read locally first. Extracted text is sent to NOVA V8 only after you choose an analysis action and confirm.", systemImage: "lock.shield")
                     .font(.callout)
-                Text("Verity sends the selected document to the OpenAI Responses API for analysis. It does not upload documents automatically when you drop them onto the character.")
+                Text("VERITY does not upload the original file as an attachment. Text extraction is performed on your Mac. Scanned PDF OCR and spreadsheet extraction are not included in this early build.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            if !feedback.isEmpty {
-                Section {
-                    Text(feedback)
-                        .foregroundStyle(isError ? .red : .secondary)
-                }
+            Section("About") {
+                LabeledContent("Application", value: "VERITY")
+                LabeledContent("AI engine", value: "NOVA V8")
+                LabeledContent("Version", value: "0.2.0")
+                Text("VERITY is a native macOS desktop companion. More desktop skills and voice features will be added in later releases.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .padding(16)
-        .frame(width: 520, height: 410)
+        .frame(width: 520, height: 390)
         .navigationTitle("Verity Settings")
-        .onAppear(perform: refreshKeyStatus)
+        .task { await checkConnection() }
     }
 
-    private func refreshKeyStatus() {
-        do {
-            hasSavedKey = try VerityKeychain.readAPIKey() != nil
-        } catch {
-            hasSavedKey = false
-            feedback = error.localizedDescription
-            isError = true
-        }
-    }
+    @MainActor
+    private func checkConnection() async {
+        isChecking = true
+        defer { isChecking = false }
 
-    private func saveKey() {
         do {
-            try VerityKeychain.saveAPIKey(apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines))
-            apiKeyDraft = ""
-            hasSavedKey = true
-            feedback = "Saved securely. Verity is ready to read documents."
-            isError = false
+            let health = try await VerityNovaClient().healthCheck()
+            if health.ok == true && health.keyConfigured == true {
+                isConnected = true
+                connectionStatus = "NOVA V8 connected"
+            } else if health.ok == true {
+                isConnected = false
+                connectionStatus = "NOVA V8 online · server key needs attention"
+            } else {
+                isConnected = false
+                connectionStatus = "NOVA V8 needs attention"
+            }
         } catch {
-            feedback = error.localizedDescription
-            isError = true
-        }
-    }
-
-    private func removeKey() {
-        do {
-            try VerityKeychain.deleteAPIKey()
-            hasSavedKey = false
-            apiKeyDraft = ""
-            feedback = "The saved API key was removed."
-            isError = false
-        } catch {
-            feedback = error.localizedDescription
-            isError = true
+            isConnected = false
+            connectionStatus = "Connection unavailable · \(error.localizedDescription)"
         }
     }
 }
