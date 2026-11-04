@@ -21,7 +21,7 @@
 		A1000000000000000000000F /* VerityMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* VerityMemory.swift */; };
 		A10000000000000000000010 /* VerityResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* VerityResponseParser.swift */; };
 		A10000000000000000000011 /* VerityMemoryCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* VerityMemoryCipher.swift */; };
-/* End PBXBuildFile section */
+\t\tA10000000000000000000012 /* VerityScreenSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* VerityScreenSignals.swift */; };\n\t\tA10000000000000000000013 /* VerityScreenWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* VerityScreenWatcher.swift */; };\n/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B10000000000000000000001 /* VerityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityApp.swift; sourceTree = "<group>"; };
@@ -42,7 +42,7 @@
 		B10000000000000000000018 /* VerityMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemory.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* VerityResponseParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityResponseParser.swift; sourceTree = "<group>"; };
 		B10000000000000000000020 /* VerityMemoryCipher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemoryCipher.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
+\t\tB10000000000000000000021 /* VerityScreenSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenSignals.swift; sourceTree = "<group>"; };\n\t\tB10000000000000000000022 /* VerityScreenWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenWatcher.swift; sourceTree = "<group>"; };\n/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C10000000000000000000001 /* Frameworks */ = {
@@ -210,14 +210,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VERITY/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -234,14 +234,14 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VERITY/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.verity.desktop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
