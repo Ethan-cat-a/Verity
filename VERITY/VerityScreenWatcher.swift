@@ -19,7 +19,10 @@ final class VerityScreenWatcher: ObservableObject {
     private var lastInterventionAt = Date.distantPast
     private var interventionInProgress = false
 
-    private init() {\n        UserDefaults.standard.register(defaults: [Self.closeExplicitTabsKey: true])\n    }\n
+    private init() {
+        UserDefaults.standard.register(defaults: [Self.closeExplicitTabsKey: true])
+    }
+
     func startIfEnabled() {
         guard UserDefaults.standard.bool(forKey: Self.enabledKey) else {
             status = "Screen awareness is off."
