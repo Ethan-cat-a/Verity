@@ -30,7 +30,7 @@ struct VeritySettingsView: View {
         Form {
             Section("The character") {
                 Toggle("Occasional unsettling stare", isOn: $eerieIdleEnabled)
-                Text("Once in a while, Verity drops the smile and holds a strange stare for a few seconds. No screen watching, no background monitoring.")
+                Text("Once in a while, Verity drops the smile and holds a strange stare for a few seconds. Screen awareness is a separate opt-in setting.")
                     .font(.caption).foregroundStyle(.secondary)
                 Label("A know-it-all ball with a big ego. Usually helpful. Occasionally odd.", systemImage: "face.smiling")
                     .font(.callout)
