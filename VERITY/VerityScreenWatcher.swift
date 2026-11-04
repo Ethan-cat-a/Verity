@@ -112,7 +112,7 @@ final class VerityScreenWatcher: ObservableObject {
            VerityScreenSignals.isBrowserBundle(bundleID),
            Date().timeIntervalSince(lastInterventionAt) > 15 {
             lastInterventionAt = Date()
-            interveneForExplicitContent(appName: appName)
+            interveneForExplicitContent(bundleID: bundleID, windowID: window.id)
             return
         }
 
@@ -162,16 +162,16 @@ final class VerityScreenWatcher: ObservableObject {
         VerityCommentBubble.shared.show(message: reaction)
     }
 
-    private func interveneForExplicitContent(appName: String) {
+    private func interveneForExplicitContent(bundleID: String, windowID: CGWindowID) {
         guard !interventionInProgress else { return }
         interventionInProgress = true
         lastForegroundApp = ""
-        let shouldClose = UserDefaults.standard.bool(forKey: Self.closeExplicitTabsKey)
-        let hasAccessibility = AXIsProcessTrusted()
 
+        let closeWasEnabled = UserDefaults.standard.bool(forKey: Self.closeExplicitTabsKey)
+        let hasAccessibility = AXIsProcessTrusted()
         VerityModel.shared.setStatus(
-            shouldClose && hasAccessibility
-                ? "Absolutely not. I am blurring that tab, then closing it."
+            closeWasEnabled && hasAccessibility
+                ? "Absolutely not. I am blurring that tab, then checking it again before closing."
                 : "That content is not staying on my watch. I have blurred it."
         )
         VerityModel.shared.showReaction(.shocked, duration: 2_000_000_000)
@@ -179,21 +179,65 @@ final class VerityScreenWatcher: ObservableObject {
 
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 900_000_000)
-            if shouldClose && hasAccessibility {
+
+            guard isWatching else {
+                VerityBlurOverlay.shared.hide()
+                VerityCommentBubble.shared.hide()
+                interventionInProgress = false
+                return
+            }
+
+            // Re-check the foreground app, exact window and visible text immediately
+            // before sending Command-W. A quick app/tab switch must never close a
+            // different page or window.
+            let closeStillEnabled = UserDefaults.standard.bool(forKey: Self.closeExplicitTabsKey)
+            let didClose = closeStillEnabled &&
+                AXIsProcessTrusted() &&
+                frontmostWindowStillShowsExplicitContent(bundleID: bundleID, windowID: windowID)
+
+            if didClose {
                 closeActiveBrowserTab()
             }
+
             try? await Task.sleep(nanoseconds: 650_000_000)
             VerityBlurOverlay.shared.hide()
             interventionInProgress = false
-            status = shouldClose && hasAccessibility
-                ? "Explicit browser content blurred and the active tab was closed."
-                : (shouldClose ? "Content blurred. Enable Accessibility to allow automatic tab closing." : "Content blurred. Automatic tab closing is disabled.")
-            let finalComment = shouldClose && hasAccessibility
+
+            if didClose {
+                status = "Explicit browser content blurred and the same tab was closed."
+            } else if !closeStillEnabled {
+                status = "Content blurred. Automatic tab closing is disabled."
+            } else if !AXIsProcessTrusted() {
+                status = "Content blurred. Enable Accessibility to allow automatic tab closing."
+            } else {
+                status = "Content blurred. The active page changed, so VERITY left it alone."
+            }
+
+            let finalComment = didClose
                 ? "There. Tab closed. Try having better taste."
-                : "I blurred that. Enable Accessibility if you want me to close tabs too."
+                : (closeStillEnabled
+                    ? "I blurred that. The page changed, so I left the new one alone."
+                    : "I blurred that. Closing is disabled.")
             VerityModel.shared.setStatus(finalComment)
             VerityCommentBubble.shared.show(message: finalComment)
         }
+    }
+
+    private func frontmostWindowStillShowsExplicitContent(bundleID: String, windowID: CGWindowID) -> Bool {
+        guard VerityScreenSignals.isBrowserBundle(bundleID),
+              let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier == bundleID,
+              let window = foregroundWindow(for: app.processIdentifier),
+              window.id == windowID,
+              let image = CGWindowListCreateImage(
+                .null,
+                .optionIncludingWindow,
+                windowID,
+                [.bestResolution]
+              ) else { return false }
+
+        let visibleText = window.title + " " + recognizeText(in: image)
+        return VerityScreenSignals.containsExplicitText(visibleText)
     }
 
     private func closeActiveBrowserTab() {
