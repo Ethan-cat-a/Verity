@@ -52,9 +52,8 @@ enum VerityScreenSignals {
         guard (2...6).contains(weekday), (0...23).contains(hour), (0...59).contains(minute) else {
             return false
         }
-        let afterStart = hour > 8 || (hour == 8 && minute >= 0)
-        let beforeEnd = hour < 15 || (hour == 15 && minute < 30)
-        return afterStart && beforeEnd
+        let minutesAfterMidnight = hour * 60 + minute
+        return (2...6).contains(weekday) && (480..<930).contains(minutesAfterMidnight)
     }
 
     static func isGamingApplication(appName: String, bundleID: String) -> Bool {
@@ -79,6 +78,7 @@ enum VerityScreenSignals {
         if isBrowserBundle(bundleID) {
             let pageText = windowTitle + " " + visibleText
             if containsGamingBrand("crazygames", in: pageText) ||
+                containsGamingBrand("crazy games", in: pageText) ||
                 pageText.localizedCaseInsensitiveContains("crazygames.com") {
                 return .browserSite("CrazyGames")
             }
