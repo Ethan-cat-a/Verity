@@ -1,4 +1,4 @@
-# VERITY 1.1.1 — the know-it-all ball
+# VERITY 1.1.2 — the know-it-all ball
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -43,11 +43,15 @@ The speed of a full AI answer still depends on the network and the NOVA service.
 
 ## Privacy
 
-Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. Outside that opt-in mode, VERITY only receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. Saved memories are created only on an explicit “remember” request.
+Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. Outside that opt-in mode, VERITY only receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. Saved memories are created only on an explicit “remember” request.
+
+## School-hours gaming guard
+
+When explicitly enabled in Settings, VERITY checks for supported game activity on weekdays from **08:00 to 15:30**, using the Mac's local time. It recognizes CrazyGames, Poki and Roblox in supported browser windows, and foreground Roblox, Steam and selected game apps. It shows a special scolding reaction, blurs the display, then closes the matching browser tab with Command-W or normally quits the game app with Command-Q. It re-checks the exact app/window and game signal immediately before closing; switching to a different page or app leaves the new window alone. This is a best-effort local check, not universal game detection. A normal app quit can interrupt a game session, so save progress first.
 
 ## Essential controls
 
-The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings include screen awareness and the blur/close behavior, alongside the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
+The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings include screen awareness, the blur/close behavior, and the optional weekday school-hours gaming guard, alongside the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
 
 ## Build from source
 
