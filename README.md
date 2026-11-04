@@ -1,4 +1,4 @@
-# VERITY 1.1.2 — the know-it-all ball
+# VERITY 1.1.3 — the know-it-all ball
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -48,6 +48,10 @@ Screen awareness is off by default. When you explicitly enable it, VERITY checks
 ## School-hours gaming guard
 
 When explicitly enabled in Settings, VERITY checks for supported game activity on weekdays from **08:00 to 15:30**, using the Mac's local time. It recognizes CrazyGames, Poki and Roblox in supported browser windows, and foreground Roblox, Steam and selected game apps. It shows a special scolding reaction, blurs the display, then closes the matching browser tab with Command-W or normally quits the game app with Command-Q. It re-checks the exact app/window and game signal immediately before closing; switching to a different page or app leaves the new window alone. This is a best-effort local check, not universal game detection. A normal app quit can interrupt a game session, so save progress first.
+
+## Diagnostics
+
+Settings opens in its own window from the menu-bar menu. The Screen awareness section includes **Check active window now** and shows the result of the latest scan, including missing permissions or an unavailable screenshot. Native game apps are checked by foreground app identity before OCR; browser pages still depend on their visible title/text and Screen Recording permission.
 
 ## Essential controls
 
