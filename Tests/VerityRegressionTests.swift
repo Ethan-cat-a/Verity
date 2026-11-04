@@ -3,6 +3,7 @@ import Darwin
 
 @main
 struct VerityRegressionTests {
+    @MainActor
     static func main() throws {
         func check(_ condition: @autoclosure () -> Bool, _ label: String) {
             guard condition() else {
@@ -21,6 +22,26 @@ struct VerityRegressionTests {
         check(VerityResponseParser.assistantText(from: Data("Plain text answer".utf8)) == "Plain text answer", "Plain-text fallback")
         let delta = #"{"choices":[{"delta":{"content":"partial"}}]}"#.data(using: .utf8)!
         check(VerityResponseParser.streamDelta(from: delta) == "partial", "Streaming delta extraction")
+        let streamedChunks = ["Hello", " world", " ", "again.", "\n", "    print(1)", "\n"]
+        let streamedAnswer = try streamedChunks.map { chunk in
+            let data = try JSONSerialization.data(withJSONObject: ["choices": [["delta": ["content": chunk]]]])
+            return VerityResponseParser.streamDelta(from: data)
+        }.joined()
+        check(streamedAnswer == streamedChunks.joined(), "Stream preserves spaces, newlines and code indentation")
+        let genericDelta = try JSONSerialization.data(withJSONObject: ["delta": ["text": " \n"]])
+        check(VerityResponseParser.streamDelta(from: genericDelta) == " \n", "Whitespace-only generic delta")
+        let blocksDelta = try JSONSerialization.data(withJSONObject: ["delta": ["content": [["text": " a"], ["text": " b"]]]])
+        check(VerityResponseParser.streamDelta(from: blocksDelta) == " a b", "Streaming blocks concatenate without inserted separators")
+
+        for prompt in ["Explain Thanksgiving", "Hey, help me debug this", "Hello can you solve 2+2",
+                       "Thanks, now explain recursion", "What are you doing to solve this?",
+                       "Tell me a joke about Swift", "Explain why people say good morning"] {
+            check(VerityScriptedReplies.reply(for: prompt) == nil, "Substantive prompt reaches AI: \(prompt)")
+        }
+        for prompt in ["Hello!", "THANK YOU.", "good morning", "Who are you?", "tell me a joke"] {
+            check(VerityScriptedReplies.reply(for: prompt) != nil, "Simple scripted prompt: \(prompt)")
+        }
+
         check(VerityResponseParser.containsSensitiveInformation("Remember that my password is hunter2"), "Sensitive phrase detection")
         check(VerityResponseParser.containsSensitiveInformation("token: abcdefghijklmnopqrstuvwxyz123456"), "Credential assignment detection")
         check(!VerityResponseParser.containsSensitiveInformation("I prefer a clean desktop and short answers."), "Normal memory remains allowed")
@@ -85,6 +106,42 @@ struct VerityRegressionTests {
         var rejected = false
         do { _ = try VerityMemoryCipher.open(tampered, keyData: key) } catch { rejected = true }
         check(rejected, "AES-GCM rejects modified archive")
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let archiveURL = directory.appendingPathComponent("memory.json")
+        let original = VerityMemoryStore(fileURL: archiveURL, readEncryptionKey: { key }, createEncryptionKey: { key })
+        original.saveMemory(title: "Original", content: "Existing project notes", category: .project)
+        original.saveSession(title: "Session", goal: "", nextStep: "", notes: "", messages: [VeritySavedMessage(isUser: true, text: "Existing session")])
+        let originalBytes = try Data(contentsOf: archiveURL)
+        var keyAvailable = false
+        var createdKey = false
+        let recovering = VerityMemoryStore(
+            fileURL: archiveURL,
+            readEncryptionKey: { keyAvailable ? key : nil },
+            createEncryptionKey: { createdKey = true; return key }
+        )
+        check(recovering.storageError != nil, "Missing archive key reports load error")
+        recovering.saveMemory(title: "New", content: "New notes", category: .general)
+        recovering.saveSession(title: "New session", goal: "", nextStep: "", notes: "", messages: [VeritySavedMessage(isUser: true, text: "New message")])
+        recovering.clearMemories()
+        let bytesAfterBlockedWrites = try Data(contentsOf: archiveURL)
+        check(bytesAfterBlockedWrites == originalBytes, "Failed load blocks writes and clears without changing archive")
+        check(!createdKey && recovering.memories.isEmpty && recovering.sessions.isEmpty, "Blocked saves do not create a replacement key or mutate state")
+        check(recovering.storageError != nil, "Blocked writes preserve load error")
+        keyAvailable = true
+        recovering.saveMemory(title: "Recovered", content: "Additional notes", category: .general)
+        check(recovering.storageError == nil && recovering.memories.count == 2 && recovering.sessions.count == 1, "Key recovery reloads old archive before saving new memory")
+        let reloaded = VerityMemoryStore(fileURL: archiveURL, readEncryptionKey: { key }, createEncryptionKey: { key })
+        check(reloaded.memories.count == 2 && reloaded.sessions.count == 1, "Recovered save preserves old memories and sessions on disk")
+
+        let corruptURL = directory.appendingPathComponent("corrupt.json")
+        let corruptBytes = Data("not a valid archive".utf8)
+        try corruptBytes.write(to: corruptURL)
+        let corrupt = VerityMemoryStore(fileURL: corruptURL, readEncryptionKey: { key }, createEncryptionKey: { key })
+        corrupt.saveMemory(title: "New", content: "Notes", category: .general)
+        let afterCorruptSave = try Data(contentsOf: corruptURL)
+        check(afterCorruptSave == corruptBytes && corrupt.storageError != nil, "Corrupt archive remains untouched after save attempt")
         print("All VERITY regression tests passed.")
     }
 }

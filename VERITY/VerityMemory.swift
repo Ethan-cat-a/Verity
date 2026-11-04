@@ -116,17 +116,39 @@ final class VerityMemoryStore: ObservableObject {
 
     private let fileURL: URL
 
-    private init() {
-        UserDefaults.standard.register(defaults: [Self.enabledKey: true])
+    private let readEncryptionKey: () throws -> Data?
+    private let createEncryptionKey: () throws -> Data
+    private var hasLoadedArchive = false
+
+    private convenience init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
-        fileURL = appSupport
+        let fileURL = appSupport
             .appendingPathComponent("VERITY", isDirectory: true)
             .appendingPathComponent("memory-v1.json")
+        self.init(fileURL: fileURL)
+    }
+
+    // Injectable storage and keys keep recovery tests independent of the user's Keychain.
+    init(
+        fileURL: URL,
+        readEncryptionKey: @escaping () throws -> Data? = VerityKeychain.readMemoryEncryptionKey,
+        createEncryptionKey: @escaping () throws -> Data = VerityKeychain.createMemoryEncryptionKeyIfNeeded
+    ) {
+        UserDefaults.standard.register(defaults: [Self.enabledKey: true])
+        self.fileURL = fileURL
+        self.readEncryptionKey = readEncryptionKey
+        self.createEncryptionKey = createEncryptionKey
         load()
     }
 
+    private func prepareForMutation() -> Bool {
+        if !hasLoadedArchive { load() }
+        return hasLoadedArchive
+    }
+
     func saveMemory(title: String, content: String, category: VerityMemoryCategory) {
+        guard prepareForMutation() else { return }
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanContent.isEmpty,
               !VerityResponseParser.containsSensitiveInformation(cleanContent) else { return }
@@ -141,6 +163,7 @@ final class VerityMemoryStore: ObservableObject {
     }
 
     func updateMemory(_ id: UUID, title: String, content: String, category: VerityMemoryCategory) {
+        guard prepareForMutation() else { return }
         guard let index = memories.firstIndex(where: { $0.id == id }) else { return }
         let cleanContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanContent.isEmpty,
@@ -154,11 +177,13 @@ final class VerityMemoryStore: ObservableObject {
     }
 
     func deleteMemory(_ id: UUID) {
+        guard prepareForMutation() else { return }
         memories.removeAll { $0.id == id }
         persist()
     }
 
     func togglePinned(_ id: UUID) {
+        guard prepareForMutation() else { return }
         guard let index = memories.firstIndex(where: { $0.id == id }) else { return }
         memories[index].isPinned.toggle()
         memories[index].updatedAt = Date()
@@ -166,11 +191,13 @@ final class VerityMemoryStore: ObservableObject {
     }
 
     func clearMemories() {
+        guard prepareForMutation() else { return }
         memories.removeAll()
         persist()
     }
 
     func saveSession(title: String, goal: String, nextStep: String, notes: String, messages: [VeritySavedMessage]) {
+        guard prepareForMutation() else { return }
         guard !messages.isEmpty else { return }
         let item = VeritySessionSnapshot(
             title: String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(100)),
@@ -184,6 +211,7 @@ final class VerityMemoryStore: ObservableObject {
     }
 
     func deleteSession(_ id: UUID) {
+        guard prepareForMutation() else { return }
         sessions.removeAll { $0.id == id }
         persist()
     }
@@ -228,13 +256,17 @@ final class VerityMemoryStore: ObservableObject {
     }
 
     private func load() {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            hasLoadedArchive = true
+            storageError = nil
+            return
+        }
         do {
             let storedData = try Data(contentsOf: fileURL)
             let encrypted = VerityMemoryCipher.isEncrypted(storedData)
             let archiveData: Data
             if encrypted {
-                guard let key = try VerityKeychain.readMemoryEncryptionKey() else {
+                guard let key = try readEncryptionKey() else {
                     throw VerityMemoryCipherError.invalidKey
                 }
                 archiveData = try VerityMemoryCipher.open(storedData, keyData: key)
@@ -245,14 +277,17 @@ final class VerityMemoryStore: ObservableObject {
             let archive = try JSONDecoder().decode(Archive.self, from: archiveData)
             memories = archive.memories.sorted { $0.updatedAt > $1.updatedAt }
             sessions = archive.sessions.sorted { $0.updatedAt > $1.updatedAt }
+            hasLoadedArchive = true
             storageError = nil
             if !encrypted { persist() }
         } catch {
+            hasLoadedArchive = false
             storageError = "Couldn't read saved memory securely: \(error.localizedDescription)"
         }
     }
 
     private func persist() {
+        guard hasLoadedArchive else { return }
         do {
             let directory = fileURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -260,7 +295,7 @@ final class VerityMemoryStore: ObservableObject {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let plaintext = try encoder.encode(archive)
-            let key = try VerityKeychain.createMemoryEncryptionKeyIfNeeded()
+            let key = try createEncryptionKey()
             let encrypted = try VerityMemoryCipher.seal(plaintext, keyData: key)
             try encrypted.write(to: fileURL, options: .atomic)
             storageError = nil
