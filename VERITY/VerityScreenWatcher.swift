@@ -13,6 +13,8 @@ final class VerityScreenWatcher: ObservableObject {
 
     @Published private(set) var isWatching = false
     @Published private(set) var status = "Screen awareness is off."
+    @Published private(set) var lastScanSummary = "No screen check has run yet."
+    @Published private(set) var lastScanAt: Date?
 
     private var timer: Timer?
     private var lastForegroundApp = ""
@@ -36,6 +38,35 @@ final class VerityScreenWatcher: ObservableObject {
     func setEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
         if enabled { enable() } else { disable() }
+    }
+
+    /// Runs a one-off check from Settings and retries setup after permissions
+    /// have been changed in System Settings.
+    func runCheckNow() {
+        guard UserDefaults.standard.bool(forKey: Self.enabledKey) else {
+            lastScanAt = Date()
+            lastScanSummary = "Turn on screen awareness first."
+            status = "Screen awareness is off."
+            return
+        }
+
+        if !CGPreflightScreenCaptureAccess() {
+            enable()
+            lastScanAt = Date()
+            lastScanSummary = "Screen Recording permission is not active. Grant it, fully quit VERITY, and reopen it."
+            return
+        }
+
+        if !isWatching {
+            enable()
+        }
+        guard isWatching else {
+            lastScanAt = Date()
+            lastScanSummary = status
+            return
+        }
+
+        inspectForegroundWindow()
     }
 
     func setCloseEnabled(_ enabled: Bool) {
@@ -64,30 +95,45 @@ final class VerityScreenWatcher: ObservableObject {
 
     private func enable() {
         guard CGPreflightScreenCaptureAccess() else {
-            let requested = CGRequestScreenCaptureAccess()
+            // Verify access separately; the request result does not guarantee that
+            // this process can capture immediately.
+            _ = CGRequestScreenCaptureAccess()
+            timer?.invalidate()
+            timer = nil
             isWatching = false
-            status = requested
-                ? "Screen access granted. Restart VERITY to begin watching."
-                : "Allow Screen Recording for VERITY in System Settings → Privacy & Security, then restart it."
+            status = "Screen Recording permission is not active yet. Allow VERITY in System Settings → Privacy & Security → Screen Recording, then fully quit and reopen VERITY."
+            lastScanSummary = status
+            return
+        }
+
+        guard !isWatching || timer == nil else {
+            status = "Screen awareness is active. Checking the frontmost window every six seconds."
             return
         }
 
         isWatching = true
-        status = "Watching the active window locally. Nothing is uploaded or saved."
+        status = "Screen awareness is active. Checking the frontmost window every six seconds."
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { [weak self] _ in
+
+        let scanTimer = Timer(timeInterval: 6, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.inspectForegroundWindow() }
         }
-        if let timer { RunLoop.main.add(timer, forMode: .common) }
+        timer = scanTimer
+        RunLoop.main.add(scanTimer, forMode: .common)
 
-        if UserDefaults.standard.bool(forKey: Self.closeExplicitTabsKey) {
+        let closeNeedsAccessibility =
+            UserDefaults.standard.bool(forKey: Self.closeExplicitTabsKey) ||
+            UserDefaults.standard.bool(forKey: Self.schoolHoursGamingGuardEnabledKey)
+        if closeNeedsAccessibility {
             let trusted = AXIsProcessTrustedWithOptions([
                 kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
             ] as CFDictionary)
             if !trusted {
-                status = "Watching locally. Allow VERITY under Privacy & Security → Accessibility to enable tab closing."
+                status = "Screen checks are active. Allow VERITY under Privacy & Security → Accessibility to enable automatic tab/game closing."
             }
         }
+
+        inspectForegroundWindow()
     }
 
     private func disable() {
@@ -98,17 +144,52 @@ final class VerityScreenWatcher: ObservableObject {
         VerityBlurOverlay.shared.hide()
         VerityCommentBubble.shared.hide()
         status = "Screen awareness is off."
+        lastScanSummary = "Screen awareness is off."
     }
 
     private func inspectForegroundWindow() {
-        guard isWatching, !interventionInProgress else { return }
-        guard let app = NSWorkspace.shared.frontmostApplication,
-              let bundleID = app.bundleIdentifier,
-              bundleID != Bundle.main.bundleIdentifier else { return }
+        guard isWatching else {
+            recordScan("Screen awareness is not running.")
+            return
+        }
+        guard !interventionInProgress else { return }
+
+        guard let app = NSWorkspace.shared.frontmostApplication else {
+            recordScan("No frontmost application was found.")
+            return
+        }
+        guard let bundleID = app.bundleIdentifier else {
+            recordScan("The frontmost application has no bundle identifier.")
+            return
+        }
 
         let appName = app.localizedName ?? bundleID
+        guard bundleID != Bundle.main.bundleIdentifier else {
+            recordScan("VERITY is currently frontmost. Switch to a browser or game app to test detection.")
+            return
+        }
+
         guard let window = foregroundWindow(for: app.processIdentifier) else {
             commentOnApplicationChange(appName: appName, bundleID: bundleID)
+            recordScan("Found \(appName), but macOS did not report an inspectable frontmost window.")
+            return
+        }
+
+        // A native game is recognizable from the foreground application identity.
+        // Check it before requesting an image so a screenshot failure cannot block it.
+        if UserDefaults.standard.bool(forKey: Self.schoolHoursGamingGuardEnabledKey),
+           isSchoolHoursNow(),
+           !VerityScreenSignals.isBrowserBundle(bundleID),
+           let gamingTarget = VerityScreenSignals.schoolHoursGamingTarget(
+                appName: appName,
+                bundleID: bundleID,
+                windowTitle: window.title,
+                visibleText: ""
+           ),
+           Date().timeIntervalSince(lastSchoolGamingInterventionAt) > 45 {
+            lastSchoolGamingInterventionAt = Date()
+            recordScan("Detected game app: \(appName). Starting school-hours reaction.")
+            interveneForSchoolGaming(target: gamingTarget, bundleID: bundleID, windowID: window.id)
             return
         }
 
@@ -117,7 +198,11 @@ final class VerityScreenWatcher: ObservableObject {
             .optionIncludingWindow,
             window.id,
             [.bestResolution]
-        ) else { return }
+        ) else {
+            commentOnApplicationChange(appName: appName, bundleID: bundleID)
+            recordScan("Found \(appName), but macOS did not provide a screenshot. Check Screen Recording permission.")
+            return
+        }
 
         let recognizedText = recognizeText(in: image)
         let inspectedText = window.title + " " + recognizedText
@@ -132,6 +217,7 @@ final class VerityScreenWatcher: ObservableObject {
            ),
            Date().timeIntervalSince(lastSchoolGamingInterventionAt) > 45 {
             lastSchoolGamingInterventionAt = Date()
+            recordScan("Detected gaming page/app: \(appName). Starting school-hours reaction.")
             interveneForSchoolGaming(target: gamingTarget, bundleID: bundleID, windowID: window.id)
             return
         }
@@ -140,11 +226,22 @@ final class VerityScreenWatcher: ObservableObject {
            VerityScreenSignals.isBrowserBundle(bundleID),
            Date().timeIntervalSince(lastInterventionAt) > 15 {
             lastInterventionAt = Date()
+            recordScan("Detected an explicit-content text signal in \(appName).")
             interveneForExplicitContent(bundleID: bundleID, windowID: window.id)
             return
         }
 
         commentOnApplicationChange(appName: appName, bundleID: bundleID)
+        if VerityScreenSignals.isBrowserBundle(bundleID) {
+            recordScan("Checked \(appName) and read visible text. No configured screen trigger was found.")
+        } else {
+            recordScan("Checked foreground app: \(appName). No configured screen trigger was found.")
+        }
+    }
+
+    private func recordScan(_ summary: String) {
+        lastScanAt = Date()
+        lastScanSummary = summary
     }
 
     private func foregroundWindow(for pid: pid_t) -> (id: CGWindowID, title: String)? {
