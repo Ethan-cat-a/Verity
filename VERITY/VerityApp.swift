@@ -22,6 +22,7 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 350_000_000)
             VerityUpdateChecker.shared.startAutomaticChecks()
+            VerityScreenWatcher.shared.startIfEnabled()
             VerityPanelController.shared.showPet()
         }
     }
@@ -29,6 +30,8 @@ final class VerityAppDelegate: NSObject, NSApplicationDelegate {
 
 struct VerityMenuBarView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
+    @ObservedObject private var screenWatcher = VerityScreenWatcher.shared
+    @AppStorage(VerityScreenWatcher.enabledKey) private var screenAwarenessEnabled = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -62,6 +65,20 @@ struct VerityMenuBarView: View {
             } label: {
                 Label("Hide desktop ball", systemImage: "eye.slash")
             }
+
+            Button {
+                screenAwarenessEnabled.toggle()
+                VerityScreenWatcher.shared.setEnabled(screenAwarenessEnabled)
+            } label: {
+                Label(
+                    screenAwarenessEnabled ? "Pause screen awareness" : "Enable screen awareness",
+                    systemImage: screenAwarenessEnabled ? "eye.slash" : "eye"
+                )
+            }
+            Text(screenWatcher.status)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Button {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
