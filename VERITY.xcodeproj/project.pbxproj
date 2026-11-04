@@ -173,6 +173,8 @@
 				A1000000000000000000000F /* VerityMemory.swift in Sources */,
 				A10000000000000000000010 /* VerityResponseParser.swift in Sources */,
 				A10000000000000000000011 /* VerityMemoryCipher.swift in Sources */,
+				A10000000000000000000012 /* VerityScreenSignals.swift in Sources */,
+				A10000000000000000000013 /* VerityScreenWatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
