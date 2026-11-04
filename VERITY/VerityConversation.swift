@@ -18,6 +18,8 @@ private struct ElevenLabsSpeechRequest: Encodable {
     struct VoiceSettings: Encodable {
         let stability: Double
         let similarity_boost: Double
+        let style: Double
+        let speed: Double
     }
 }
 
@@ -26,13 +28,13 @@ struct VerityVoiceOption: Identifiable, Hashable {
     let title: String
     let detail: String
 
-    static let defaultID = "QZ1okeFI43NQd6lXAzQ5"
+    static let defaultID = "SkTrsOLN0P3ZmVSoI2k7"
 
     static let all: [VerityVoiceOption] = [
         VerityVoiceOption(
             id: defaultID,
-            title: "Verity · Default voice",
-            detail: "A clear, natural American male library voice for Verity's confident character."
+            title: "Verity · Measured",
+            detail: "A low, calm American voice with dry confidence and a quietly uncanny edge."
         ),
         VerityVoiceOption(
             id: "wWWn96OtTHu1sn8SRGEr",
@@ -48,7 +50,7 @@ enum VerityVoiceService {
     static let defaultVoiceID = VerityVoiceOption.defaultID
     static let previousDefaultVoiceID = "wWWn96OtTHu1sn8SRGEr"
     static let useElevenLabsPreferenceKey = "verity.voice.useElevenLabs"
-    private static let voiceMigrationKey = "verity.voice.preference.migrated.0.9.0"
+    private static let voiceMigrationKey = "verity.voice.preference.migrated.1.2.0"
 
     static func migrateLegacyVoicePreferenceIfNeeded() {
         let defaults = UserDefaults.standard
@@ -81,7 +83,8 @@ enum VerityVoiceService {
         let endpoint = "https://api.elevenlabs.io/v1/text-to-speech/\(voiceID)?output_format=mp3_44100_64"
         guard let url = URL(string: endpoint) else { throw VerityVoiceError.invalidURL }
 
-        let spokenText = String(text.prefix(1_760))
+        let directedText = "[calm, low, measured, dryly amused] " + text
+        let spokenText = String(directedText.prefix(1_760))
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -92,7 +95,7 @@ enum VerityVoiceService {
         request.httpBody = try JSONEncoder().encode(ElevenLabsSpeechRequest(
             text: spokenText,
             model_id: "eleven_v4",
-            voice_settings: .init(stability: 0.72, similarity_boost: 0.84)
+            voice_settings: .init(stability: 0.68, similarity_boost: 0.82, style: 0.18, speed: 0.90)
         ))
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -525,8 +528,8 @@ final class VerityConversationModel: ObservableObject {
                 voiceStatus = "Mac voice · Fast local speech"
                 let utterance = AVSpeechUtterance(string: text)
                 utterance.voice = Self.veritySystemVoice()
-                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
-                utterance.pitchMultiplier = 1.02
+                utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.91
+                utterance.pitchMultiplier = 0.88
                 speechSynthesizer.speak(utterance)
                 while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                     try? await Task.sleep(nanoseconds: 80_000_000)
@@ -540,8 +543,8 @@ final class VerityConversationModel: ObservableObject {
             errorMessage = error.localizedDescription
             let utterance = AVSpeechUtterance(string: text)
             utterance.voice = Self.veritySystemVoice()
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.08
-            utterance.pitchMultiplier = 1.02
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.91
+            utterance.pitchMultiplier = 0.88
             speechSynthesizer.speak(utterance)
             while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
                 try? await Task.sleep(nanoseconds: 120_000_000)
