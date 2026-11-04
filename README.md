@@ -1,10 +1,12 @@
-# VERITY 1.1.3 — the know-it-all ball
+# VERITY 1.2.0 — the know-it-all orb
 
 **Meet the smartest thing on your desktop. It knows it.**
 
 A little Clippy energy. A much bigger ego. A slightly unsettling smile.
 
-VERITY is a tiny yellow desktop companion that acts like it knows everything. Click the ball, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
+VERITY is a tiny yellow desktop companion with a softly lit 3D orb, an original smile, and an air of complete certainty. Click it, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
+
+Version 1.2.0 adds the animated orb, original scripted character replies for common prompts, and an optional Fish Audio community voice.
 
 ## Download
 
@@ -24,11 +26,11 @@ This clears the quarantine flag only for the installed VERITY app; it does not d
 
 ## The whole idea
 
-- A bright yellow smiley ball stays docked on your desktop.
+- A softly lit yellow 3D smiley orb stays docked on your desktop, with animated expressions and an occasional unsettling stare.
 - Click it to open one simple conversation. Type or use the microphone.
 - Drop a supported document into the window and ask about it.
 - VERITY has a huge ego, a sharp tongue, and a habit of acting like the answer was obvious.
-- Every few minutes, when it is idle, the smile can briefly become unsettling. It then returns to normal.
+- Original scripted replies handle common greetings and character questions without a network request.
 - Say **“Remember that…”** to save a note. Memory is explicit, encrypted on your Mac, and can be disabled or cleared in Settings.
 
 ## Fast by default
@@ -36,14 +38,16 @@ This clears the quarantine flag only for the installed VERITY app; it does not d
 - Replies stream into the conversation as they arrive.
 - Only the four latest chat turns are sent, with a per-message context cap, to avoid hauling the whole conversation into every request.
 - Common greetings and character questions are answered locally.
-- The built-in macOS voice is the default because it avoids an extra voice-synthesis request. ElevenLabs is optional in Settings.
+- The built-in macOS voice is the fast default. Fish Audio and ElevenLabs are optional online voice providers in Settings; only one can be enabled at a time.
+- Add a Fish Audio API key in Settings to enable the community-published VERITY voice. The Fish model is community-made, not an official recording.
+- Voice API keys are stored in macOS Keychain. When an online voice is enabled, VERITY sends reply text to the selected provider for speech synthesis.
 - When ElevenLabs is enabled, VERITY prepares the next speech segment while the current one plays.
 
 The speed of a full AI answer still depends on the network and the NOVA service. VERITY cannot make a remote model respond faster than the service itself.
 
 ## Privacy
 
-Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. Outside that opt-in mode, VERITY only receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. Saved memories are created only on an explicit “remember” request.
+Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. VERITY receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. If you enable Fish Audio or ElevenLabs, the reply text is also sent to that selected provider for speech synthesis. Voice API keys are stored in macOS Keychain. Saved memories are created only on an explicit “remember” request.
 
 ## School-hours gaming guard
 
