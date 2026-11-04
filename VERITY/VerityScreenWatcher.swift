@@ -9,6 +9,7 @@ final class VerityScreenWatcher: ObservableObject {
     static let shared = VerityScreenWatcher()
     static let enabledKey = "verity.screenAwareness.enabled"
     static let closeExplicitTabsKey = "verity.screenAwareness.closeExplicitTabs"
+    static let schoolHoursGamingGuardEnabledKey = "verity.screenAwareness.schoolHoursGamingGuardEnabled"
 
     @Published private(set) var isWatching = false
     @Published private(set) var status = "Screen awareness is off."
@@ -17,6 +18,7 @@ final class VerityScreenWatcher: ObservableObject {
     private var lastForegroundApp = ""
     private var lastCommentAt = Date.distantPast
     private var lastInterventionAt = Date.distantPast
+    private var lastSchoolGamingInterventionAt = Date.distantPast
     private var interventionInProgress = false
 
     private init() {
@@ -46,6 +48,18 @@ final class VerityScreenWatcher: ObservableObject {
                 ? "Screen awareness is on. Explicit browser tabs will be blurred, then closed."
                 : "Screen checks are on. Allow VERITY under Privacy & Security → Accessibility to enable automatic tab closing."
         }
+    }
+
+    func setSchoolHoursGamingGuardEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.schoolHoursGamingGuardEnabledKey)
+        guard enabled, UserDefaults.standard.bool(forKey: Self.enabledKey) else { return }
+
+        let trusted = AXIsProcessTrustedWithOptions([
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ] as CFDictionary)
+        status = trusted
+            ? "School-hours gaming guard is on. Weekdays, 08:00–15:30."
+            : "School-hours game checks are on. Allow VERITY under Privacy & Security → Accessibility so it can close games."
     }
 
     private func enable() {
@@ -107,6 +121,20 @@ final class VerityScreenWatcher: ObservableObject {
 
         let recognizedText = recognizeText(in: image)
         let inspectedText = window.title + " " + recognizedText
+
+        if UserDefaults.standard.bool(forKey: Self.schoolHoursGamingGuardEnabledKey),
+           isSchoolHoursNow(),
+           let gamingTarget = VerityScreenSignals.schoolHoursGamingTarget(
+                appName: appName,
+                bundleID: bundleID,
+                windowTitle: window.title,
+                visibleText: recognizedText
+           ),
+           Date().timeIntervalSince(lastSchoolGamingInterventionAt) > 45 {
+            lastSchoolGamingInterventionAt = Date()
+            interveneForSchoolGaming(target: gamingTarget, bundleID: bundleID, windowID: window.id)
+            return
+        }
 
         if VerityScreenSignals.containsExplicitText(inspectedText),
            VerityScreenSignals.isBrowserBundle(bundleID),
@@ -223,6 +251,138 @@ final class VerityScreenWatcher: ObservableObject {
         }
     }
 
+
+    private func isSchoolHoursNow() -> Bool {
+        let parts = Calendar.autoupdatingCurrent.dateComponents(
+            [.weekday, .hour, .minute],
+            from: Date()
+        )
+        return VerityScreenSignals.isSchoolHours(
+            weekday: parts.weekday ?? 0,
+            hour: parts.hour ?? -1,
+            minute: parts.minute ?? -1
+        )
+    }
+
+    private func interveneForSchoolGaming(
+        target: VerityScreenSignals.GamingTarget,
+        bundleID: String,
+        windowID: CGWindowID
+    ) {
+        guard !interventionInProgress else { return }
+        interventionInProgress = true
+        lastForegroundApp = ""
+
+        let targetName: String
+        let actionDescription: String
+        switch target {
+        case .browserSite(let site):
+            targetName = site
+            actionDescription = "closing that tab"
+        case .application(let app):
+            targetName = app
+            actionDescription = "quitting that game"
+        }
+
+        let scolding = "You're gaming during class? Embarrassing. \(targetName) can wait. I'm \(actionDescription). Back to work."
+        VerityModel.shared.setStatus(scolding)
+        VerityModel.shared.showReaction(.angry, duration: 2_800_000_000)
+        VerityBlurOverlay.shared.show(message: "CLASS TIME. GAME TIME IS OVER.")
+        VerityCommentBubble.shared.show(message: scolding)
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+
+            guard isWatching else {
+                VerityBlurOverlay.shared.hide()
+                VerityCommentBubble.shared.hide()
+                interventionInProgress = false
+                return
+            }
+
+            let guardStillEnabled = UserDefaults.standard.bool(forKey: Self.schoolHoursGamingGuardEnabledKey)
+            let stillSchoolHours = isSchoolHoursNow()
+            let hasAccessibility = AXIsProcessTrusted()
+            let sameGamingTarget = frontmostWindowStillShowsGamingTarget(
+                target: target,
+                bundleID: bundleID,
+                windowID: windowID
+            )
+            let didClose = guardStillEnabled && stillSchoolHours && hasAccessibility && sameGamingTarget
+
+            if didClose {
+                switch target {
+                case .browserSite(_):
+                    closeActiveBrowserTab()
+                case .application(_):
+                    quitActiveGameApplication()
+                }
+            }
+
+            try? await Task.sleep(nanoseconds: 650_000_000)
+            VerityBlurOverlay.shared.hide()
+            interventionInProgress = false
+
+            let finalComment: String
+            if didClose {
+                switch target {
+                case .browserSite(_):
+                    finalComment = "\(targetName) tab closed. Now get back to class."
+                case .application(_):
+                    finalComment = "\(targetName) was quit. Now get back to class."
+                }
+            } else if !guardStillEnabled {
+                finalComment = "School-hours guard is off. I left it alone."
+            } else if !stillSchoolHours {
+                finalComment = "School hours are over. I left the game alone."
+            } else if !hasAccessibility {
+                finalComment = "Game spotted. Allow VERITY under Privacy & Security → Accessibility so I can close it."
+            } else {
+                finalComment = "You changed pages or apps, so I left the new one alone."
+            }
+
+            VerityModel.shared.setStatus(finalComment)
+            VerityCommentBubble.shared.show(message: finalComment)
+        }
+    }
+
+    private func frontmostWindowStillShowsGamingTarget(
+        target: VerityScreenSignals.GamingTarget,
+        bundleID: String,
+        windowID: CGWindowID
+    ) -> Bool {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier == bundleID,
+              let window = foregroundWindow(for: app.processIdentifier),
+              window.id == windowID else { return false }
+
+        switch target {
+        case .browserSite:
+            guard VerityScreenSignals.isBrowserBundle(bundleID),
+                  let image = CGWindowListCreateImage(
+                    .null,
+                    .optionIncludingWindow,
+                    windowID,
+                    [.bestResolution]
+                  ) else { return false }
+            let visibleText = recognizeText(in: image)
+            return VerityScreenSignals.schoolHoursGamingTarget(
+                appName: app.localizedName ?? bundleID,
+                bundleID: bundleID,
+                windowTitle: window.title,
+                visibleText: visibleText
+            ) == target
+
+        case .application:
+            return VerityScreenSignals.schoolHoursGamingTarget(
+                appName: app.localizedName ?? bundleID,
+                bundleID: bundleID,
+                windowTitle: window.title,
+                visibleText: ""
+            ) == target
+        }
+    }
+
     private func frontmostWindowStillShowsExplicitContent(bundleID: String, windowID: CGWindowID) -> Bool {
         guard VerityScreenSignals.isBrowserBundle(bundleID),
               let app = NSWorkspace.shared.frontmostApplication,
@@ -241,10 +401,21 @@ final class VerityScreenWatcher: ObservableObject {
     }
 
     private func closeActiveBrowserTab() {
+        postCommandKey(virtualKey: 0x0D) // W
+    }
+
+    /// Browser games are closed with Command-W; native game apps use Command-Q.
+    /// This is a normal app quit, not a force-quit, so the app can handle its own exit.
+    private func quitActiveGameApplication() {
+        guard AXIsProcessTrusted() else { return }
+        postCommandKey(virtualKey: 0x0C) // Q
+    }
+
+    private func postCommandKey(virtualKey: CGKeyCode) {
         guard AXIsProcessTrusted() else { return }
         let source = CGEventSource(stateID: .hidSystemState)
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: true)
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x0D, keyDown: false)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: false)
         keyDown?.flags = .maskCommand
         keyUp?.flags = .maskCommand
         keyDown?.post(tap: .cghidEventTap)

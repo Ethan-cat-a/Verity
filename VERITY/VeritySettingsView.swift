@@ -14,6 +14,7 @@ struct VeritySettingsView: View {
     @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
     @AppStorage(VerityScreenWatcher.enabledKey) private var screenAwarenessEnabled = false
     @AppStorage(VerityScreenWatcher.closeExplicitTabsKey) private var closeExplicitTabs = true
+    @AppStorage(VerityScreenWatcher.schoolHoursGamingGuardEnabledKey) private var schoolHoursGamingGuardEnabled = false
     @ObservedObject private var screenWatcher = VerityScreenWatcher.shared
     @AppStorage(VerityVoiceService.useElevenLabsPreferenceKey) private var useElevenLabsVoice = false
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
@@ -23,7 +24,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.1"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.2"
     }
 
     var body: some View {
@@ -40,7 +41,11 @@ struct VeritySettingsView: View {
                 Toggle("Let VERITY watch the active screen", isOn: $screenAwarenessEnabled)
                 Toggle("Blur, then close obvious explicit browser tabs", isOn: $closeExplicitTabs)
                     .disabled(!screenAwarenessEnabled)
-                Text("When enabled, VERITY checks the frontmost window about every six seconds. Text recognition and keyword checks run locally; screenshots are not uploaded or saved. Obvious adult terms in visible browser text trigger a brief blur, then VERITY sends Command-W to close that tab. It can miss image-only content or misread context, and closing a tab may discard unsaved form contents.")
+                Toggle("Scold me for gaming during school hours", isOn: $schoolHoursGamingGuardEnabled)
+                    .disabled(!screenAwarenessEnabled)
+                Text("School-hours guard runs Monday–Friday, 08:00–15:30 using this Mac's local time. It checks supported browser windows for CrazyGames, Poki and Roblox, and recognizes foreground Roblox, Steam and selected game apps. VERITY gives a special scolding, blurs the screen, then closes the matching browser tab or normally quits the game app. Save progress first: quitting a game may interrupt a session.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("When screen awareness is enabled, VERITY checks the frontmost window about every six seconds. Text recognition and keyword checks run locally; screenshots are not uploaded or saved. Obvious adult terms in visible browser text trigger a brief blur, then VERITY sends Command-W to close that tab. It can miss image-only content or misread context, and closing a tab may discard unsaved form contents.")
                     .font(.caption).foregroundStyle(.secondary)
                 Label(screenWatcher.status, systemImage: screenWatcher.isWatching ? "eye" : "eye.slash")
                     .font(.caption).foregroundStyle(.secondary)
@@ -158,6 +163,9 @@ struct VeritySettingsView: View {
         }
         .onChange(of: closeExplicitTabs) { enabled in
             screenWatcher.setCloseEnabled(enabled)
+        }
+        .onChange(of: schoolHoursGamingGuardEnabled) { enabled in
+            screenWatcher.setSchoolHoursGamingGuardEnabled(enabled)
         }
         .onChange(of: automaticUpdateChecks) { enabled in
             if enabled { updateChecker.startAutomaticChecks() }
