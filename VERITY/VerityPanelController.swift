@@ -103,3 +103,39 @@ private final class VerityPetPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
+
+
+/// Presents Settings as a normal retained AppKit window. This is reliable for
+/// a menu-bar-only (LSUIElement) app, where a SwiftUI Settings scene selector
+/// may not have a responder target.
+@MainActor
+final class VeritySettingsWindowController {
+    static let shared = VeritySettingsWindowController()
+
+    private var window: NSWindow?
+
+    private init() {}
+
+    func show() {
+        if window == nil {
+            let size = NSSize(width: 540, height: 660)
+            let settingsWindow = NSWindow(
+                contentRect: NSRect(origin: .zero, size: size),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            settingsWindow.title = "VERITY Settings"
+            settingsWindow.isReleasedWhenClosed = false
+            settingsWindow.contentMinSize = NSSize(width: 500, height: 560)
+            settingsWindow.contentView = NSHostingView(rootView: VeritySettingsView())
+            settingsWindow.center()
+            settingsWindow.setFrameAutosaveName("VERITY.Settings")
+            settingsWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            window = settingsWindow
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+    }
+}
