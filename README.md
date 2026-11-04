@@ -1,4 +1,4 @@
-# VERITY 1.1.0 — the know-it-all ball
+# VERITY 1.1.1 — the know-it-all ball
 
 **Meet the smartest thing on your desktop. It knows it.**
 
