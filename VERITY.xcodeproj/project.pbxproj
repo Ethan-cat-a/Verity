@@ -85,6 +85,8 @@
 				B10000000000000000000018 /* VerityMemory.swift */,
 				B10000000000000000000019 /* VerityResponseParser.swift */,
 				B10000000000000000000020 /* VerityMemoryCipher.swift */,
+				B10000000000000000000021 /* VerityScreenSignals.swift */,
+				B10000000000000000000022 /* VerityScreenWatcher.swift */,
 				B10000000000000000000007 /* Info.plist */,
 			);
 			path = VERITY;
