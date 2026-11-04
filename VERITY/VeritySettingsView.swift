@@ -7,7 +7,9 @@ struct VeritySettingsView: View {
     @State private var isConnected = false
     @State private var isChecking = false
     @State private var elevenLabsKey = ""
+    @State private var fishAudioKey = ""
     @State private var hasSavedElevenLabsKey = false
+    @State private var hasSavedFishAudioKey = false
     @State private var voiceMessage = ""
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
@@ -17,6 +19,7 @@ struct VeritySettingsView: View {
     @AppStorage(VerityScreenWatcher.schoolHoursGamingGuardEnabledKey) private var schoolHoursGamingGuardEnabled = false
     @ObservedObject private var screenWatcher = VerityScreenWatcher.shared
     @AppStorage(VerityVoiceService.useElevenLabsPreferenceKey) private var useElevenLabsVoice = false
+    @AppStorage(VerityVoiceService.useFishAudioPreferenceKey) private var useFishAudioVoice = false
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
     @State private var memoryMessage = ""
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
@@ -24,7 +27,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
     }
 
     var body: some View {
@@ -72,16 +75,49 @@ struct VeritySettingsView: View {
                         Text(voice.title).tag(voice.id)
                     }
                 }
-                Toggle("Use ElevenLabs voice (adds synthesis time)", isOn: $useElevenLabsVoice)
+                .disabled(useFishAudioVoice)
+                Toggle("Use Fish Audio · Verity community voice", isOn: Binding(
+                    get: { useFishAudioVoice },
+                    set: { enabled in
+                        useFishAudioVoice = enabled
+                        if enabled { useElevenLabsVoice = false }
+                    }
+                ))
+                    .disabled(!hasSavedFishAudioKey)
+                Toggle("Use ElevenLabs voice (adds synthesis time)", isOn: Binding(
+                    get: { useElevenLabsVoice },
+                    set: { enabled in
+                        useElevenLabsVoice = enabled
+                        if enabled { useFishAudioVoice = false }
+                    }
+                ))
                     .disabled(!hasSavedElevenLabsKey)
                 HStack(spacing: 8) {
-                    Image(systemName: hasSavedElevenLabsKey ? "checkmark.circle.fill" : "waveform")
-                        .foregroundStyle(hasSavedElevenLabsKey ? .green : .secondary)
-                    Text(hasSavedElevenLabsKey && useElevenLabsVoice ? "Character voice enabled" : "Using the fast built-in Mac voice")
+                    let activeProviderConfigured = (useFishAudioVoice && hasSavedFishAudioKey)
+                        || (useElevenLabsVoice && hasSavedElevenLabsKey)
+                    Image(systemName: activeProviderConfigured ? "checkmark.circle.fill" : "waveform")
+                        .foregroundStyle(activeProviderConfigured ? .green : .secondary)
+                    Text(useFishAudioVoice && hasSavedFishAudioKey
+                         ? "Fish Audio Verity is enabled"
+                         : (useElevenLabsVoice && hasSavedElevenLabsKey
+                            ? "ElevenLabs character voice enabled"
+                            : "Using the fast built-in Mac voice"))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button("Preview") { Task { await previewSelectedVoice() } }
-                        .disabled(!hasSavedElevenLabsKey)
+                        .disabled(!activeProviderConfigured)
+                }
+                SecureField("Fish Audio API key", text: $fishAudioKey)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Button("Save Fish Audio key") { saveFishAudioKey() }
+                        .disabled(fishAudioKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    if hasSavedFishAudioKey {
+                        Button("Remove", role: .destructive) { removeFishAudioKey() }
+                    }
+                    Spacer()
+                    Link("Fish Audio API docs", destination: URL(string: "https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech")!)
+                        .font(.caption)
                 }
                 SecureField("ElevenLabs API key", text: $elevenLabsKey)
                     .textFieldStyle(.roundedBorder)
@@ -98,7 +134,9 @@ struct VeritySettingsView: View {
                 if !voiceMessage.isEmpty {
                     Text(voiceMessage).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
-                Text("The key is stored in macOS Keychain. Without it, Verity uses the built-in Mac voice for the fastest response.")
+                Link("View the Fish Audio Verity community voice", destination: FishAudioVoiceService.voiceModelURL)
+                    .font(.caption)
+                Text("Fish Audio is an optional online voice: reply text is sent to Fish Audio for synthesis when enabled. The voice is a community-published model, not an official recording. API keys are stored in macOS Keychain. Without an enabled provider, Verity uses the built-in Mac voice.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -160,7 +198,7 @@ struct VeritySettingsView: View {
         }
         .formStyle(.grouped)
         .padding(14)
-        .frame(width: 500, height: 560)
+        .frame(width: 500, height: 700)
         .navigationTitle("VERITY")
         .task {
             VerityVoiceService.migrateLegacyVoicePreferenceIfNeeded()
@@ -196,8 +234,10 @@ struct VeritySettingsView: View {
     private func refreshVoiceKeyStatus() {
         do {
             hasSavedElevenLabsKey = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
+            hasSavedFishAudioKey = try VerityKeychain.readFishAudioAPIKey()?.isEmpty == false
         } catch {
             hasSavedElevenLabsKey = false
+            hasSavedFishAudioKey = false
             voiceMessage = error.localizedDescription
         }
     }
@@ -205,18 +245,27 @@ struct VeritySettingsView: View {
     @MainActor
     private func previewSelectedVoice() async {
         do {
-            guard let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty else {
-                voiceMessage = "Add an ElevenLabs API key before previewing."
-                return
-            }
             let sample = "I'm Verity. The smartest ball on your desktop. Ask me anything; I already know."
-            let audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
+            let audio: Data
+            if useFishAudioVoice {
+                guard let apiKey = try VerityKeychain.readFishAudioAPIKey(), !apiKey.isEmpty else {
+                    voiceMessage = "Add a Fish Audio API key before previewing."
+                    return
+                }
+                audio = try await FishAudioVoiceService.synthesize(sample, apiKey: apiKey)
+            } else {
+                guard let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty else {
+                    voiceMessage = "Add an ElevenLabs API key before previewing."
+                    return
+                }
+                audio = try await VerityVoiceService.synthesize(sample, apiKey: apiKey)
+            }
             previewPlayer?.stop()
             let player = try AVAudioPlayer(data: audio)
             previewPlayer = player
             player.prepareToPlay()
             guard player.play() else { throw VerityVoiceError.invalidResponse }
-            voiceMessage = "Playing Verity."
+            voiceMessage = useFishAudioVoice ? "Playing Fish Audio's community Verity voice." : "Playing Verity."
         } catch {
             voiceMessage = "Voice preview failed: \(error.localizedDescription)"
         }
@@ -242,6 +291,36 @@ struct VeritySettingsView: View {
         } catch {
             voiceMessage = "Couldn't remove the key: \(error.localizedDescription)"
         }
+    }
+
+    private func saveFishAudioKey() {
+        do {
+            try VerityKeychain.saveFishAudioAPIKey(fishAudioKey)
+            fishAudioKey = ""
+            hasSavedFishAudioKey = true
+            useFishAudioVoice = true
+            useElevenLabsVoice = false
+            voiceMessage = "Fish Audio key saved securely. Fish Audio Verity is enabled."
+        } catch {
+            voiceMessage = "Couldn't save the key: \(error.localizedDescription)"
+        }
+    }
+
+    private func removeFishAudioKey() {
+        do {
+            try VerityKeychain.deleteFishAudioAPIKey()
+            fishAudioKey = ""
+            hasSavedFishAudioKey = false
+            useFishAudioVoice = false
+            voiceMessage = "Fish Audio key removed. Verity will use the Mac voice or your selected ElevenLabs voice."
+        } catch {
+            voiceMessage = "Couldn't remove the key: \(error.localizedDescription)"
+        }
+    }
+
+    private var activeProviderConfigured: Bool {
+        (useFishAudioVoice && hasSavedFishAudioKey)
+            || (useElevenLabsVoice && hasSavedElevenLabsKey)
     }
 
     @MainActor

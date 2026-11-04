@@ -23,6 +23,23 @@ private struct ElevenLabsSpeechRequest: Encodable {
     }
 }
 
+private struct FishAudioSpeechRequest: Encodable {
+    let text: String
+    let reference_id: String
+    let format = "mp3"
+    let temperature = 0.7
+    let top_p = 0.7
+    let normalize = true
+    let latency = "balanced"
+    private let prosody = Prosody(speed: 0.96, volume: 0, normalize_loudness: true)
+
+    private struct Prosody: Encodable {
+        let speed: Double
+        let volume: Double
+        let normalize_loudness: Bool
+    }
+}
+
 struct VerityVoiceOption: Identifiable, Hashable {
     let id: String
     let title: String
@@ -50,6 +67,7 @@ enum VerityVoiceService {
     static let defaultVoiceID = VerityVoiceOption.defaultID
     static let previousDefaultVoiceID = "wWWn96OtTHu1sn8SRGEr"
     static let useElevenLabsPreferenceKey = "verity.voice.useElevenLabs"
+    static let useFishAudioPreferenceKey = "verity.voice.useFishAudio"
     private static let voiceMigrationKey = "verity.voice.preference.migrated.1.2.0"
 
     static func migrateLegacyVoicePreferenceIfNeeded() {
@@ -109,6 +127,75 @@ enum VerityVoiceService {
     }
 }
 
+enum FishAudioVoiceService {
+    static let voiceModelID = "711cf3ed00ab441a8f54a45058047b7a"
+    static let voiceModelURL = URL(string: "https://fish.audio/m/711cf3ed00ab441a8f54a45058047b7a/")!
+
+    static func synthesize(_ text: String, apiKey: String) async throws -> Data {
+        guard let url = URL(string: "https://api.fish.audio/v1/tts") else {
+            throw FishAudioVoiceError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.setValue("drama-3", forHTTPHeaderField: "model")
+        request.timeoutInterval = 60
+        request.httpBody = try JSONEncoder().encode(FishAudioSpeechRequest(
+            text: String(text.prefix(1_760)),
+            reference_id: voiceModelID
+        ))
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw FishAudioVoiceError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let detail = String(data: data, encoding: .utf8) ?? "Fish Audio returned HTTP \(http.statusCode)."
+            throw FishAudioVoiceError.requestFailed(http.statusCode, detail)
+        }
+        guard !data.isEmpty else { throw FishAudioVoiceError.emptyAudio }
+        return data
+    }
+}
+
+enum FishAudioVoiceError: LocalizedError {
+    case invalidURL
+    case invalidResponse
+    case requestFailed(Int, String)
+    case emptyAudio
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL: return "The Fish Audio voice URL is invalid."
+        case .invalidResponse: return "Fish Audio returned an invalid response."
+        case .requestFailed(let code, let detail): return "Fish Audio request failed (HTTP \(code)): \(detail.prefix(240))"
+        case .emptyAudio: return "Fish Audio returned empty audio."
+        }
+    }
+}
+
+private enum VeritySpeechProvider: Sendable {
+    case fishAudio(String)
+    case elevenLabs(String)
+
+    var status: String {
+        switch self {
+        case .fishAudio: return "VERITY community voice · Fish Audio"
+        case .elevenLabs: return "VERITY character voice · Eleven v4"
+        }
+    }
+
+    func synthesize(_ text: String, mood: VerityMood? = nil) async throws -> Data {
+        switch self {
+        case .fishAudio(let apiKey):
+            return try await FishAudioVoiceService.synthesize(text, apiKey: apiKey)
+        case .elevenLabs(let apiKey):
+            return try await VerityVoiceService.synthesize(text, apiKey: apiKey, mood: mood)
+        }
+    }
+}
+
 enum VerityVoiceError: LocalizedError {
     case invalidURL
     case invalidResponse
@@ -154,9 +241,18 @@ final class VerityConversationModel: ObservableObject {
 
     func refreshVoiceStatus() {
         do {
-            let configured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
-            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
-            voiceStatus = configured && useElevenLabs ? "Verity character voice" : "Mac voice · Fast mode"
+            let defaults = UserDefaults.standard
+            let useFishAudio = defaults.bool(forKey: VerityVoiceService.useFishAudioPreferenceKey)
+            let useElevenLabs = defaults.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
+            let fishAudioConfigured = try VerityKeychain.readFishAudioAPIKey()?.isEmpty == false
+            let elevenLabsConfigured = try VerityKeychain.readElevenLabsAPIKey()?.isEmpty == false
+            if useFishAudio && fishAudioConfigured {
+                voiceStatus = "VERITY community voice · Fish Audio"
+            } else if useElevenLabs && elevenLabsConfigured {
+                voiceStatus = "VERITY character voice · Eleven v4"
+            } else {
+                voiceStatus = "Mac voice · Fast mode"
+            }
         } catch {
             voiceStatus = "Mac voice · Keychain unavailable"
         }
@@ -486,16 +582,25 @@ final class VerityConversationModel: ObservableObject {
         }
 
         do {
-            let useElevenLabs = UserDefaults.standard.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey)
-            if useElevenLabs,
-               let apiKey = try VerityKeychain.readElevenLabsAPIKey(),
-               !apiKey.isEmpty {
-                voiceStatus = "VERITY character voice · Eleven v4"
+            let defaults = UserDefaults.standard
+            let provider: VeritySpeechProvider?
+            if defaults.bool(forKey: VerityVoiceService.useFishAudioPreferenceKey),
+               let apiKey = try VerityKeychain.readFishAudioAPIKey(), !apiKey.isEmpty {
+                provider = .fishAudio(apiKey)
+            } else if defaults.bool(forKey: VerityVoiceService.useElevenLabsPreferenceKey),
+                      let apiKey = try VerityKeychain.readElevenLabsAPIKey(), !apiKey.isEmpty {
+                provider = .elevenLabs(apiKey)
+            } else {
+                provider = nil
+            }
+
+            if let provider {
+                voiceStatus = provider.status
                 let chunks = Self.makeSpeechChunks(text)
                 guard let firstChunk = chunks.first else { throw VerityVoiceError.emptyAudio }
 
                 pendingAudioTask = Task {
-                    try await VerityVoiceService.synthesize(firstChunk, apiKey: apiKey)
+                    try await provider.synthesize(firstChunk)
                 }
 
                 for index in chunks.indices {
@@ -509,7 +614,7 @@ final class VerityConversationModel: ObservableObject {
                     if index + 1 < chunks.count {
                         let nextChunk = chunks[index + 1]
                         pendingAudioTask = Task {
-                            try await VerityVoiceService.synthesize(nextChunk, apiKey: apiKey, mood: reaction)
+                            try await provider.synthesize(nextChunk, mood: reaction)
                         }
                     } else {
                         pendingAudioTask = nil
