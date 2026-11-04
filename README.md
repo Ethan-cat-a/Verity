@@ -1,4 +1,4 @@
-# VERITY 1.0.0 — the know-it-all ball
+# VERITY 1.1.0 — the know-it-all ball
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -43,11 +43,11 @@ The speed of a full AI answer still depends on the network and the NOVA service.
 
 ## Privacy
 
-VERITY does not watch your screen, capture windows in the background, inspect the Trash, or monitor app activity. It only receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. Saved memories are created only on an explicit “remember” request.
+Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. Outside that opt-in mode, VERITY only receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. Saved memories are created only on an explicit “remember” request.
 
 ## Essential controls
 
-The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings are limited to the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
+The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings include screen awareness and the blur/close behavior, alongside the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
 
 ## Build from source
 
