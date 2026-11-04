@@ -24,7 +24,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.2"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3"
     }
 
     var body: some View {
@@ -49,6 +49,21 @@ struct VeritySettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Label(screenWatcher.status, systemImage: screenWatcher.isWatching ? "eye" : "eye.slash")
                     .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(screenWatcher.lastScanSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    if let lastScanAt = screenWatcher.lastScanAt {
+                        Text("Last checked " + lastScanAt.formatted(date: .omitted, time: .standard))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Button("Check active window now") {
+                        screenWatcher.runCheckNow()
+                    }
+                    .disabled(!screenAwarenessEnabled)
+                }
             }
 
             Section("Voice") {
