@@ -50,6 +50,18 @@ final class VerityScreenWatcher: ObservableObject {
         }
     }
 
+    func setSchoolHoursGamingGuardEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.schoolHoursGamingGuardEnabledKey)
+        guard enabled, UserDefaults.standard.bool(forKey: Self.enabledKey) else { return }
+
+        let trusted = AXIsProcessTrustedWithOptions([
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ] as CFDictionary)
+        status = trusted
+            ? "School-hours gaming guard is on. Weekdays, 08:00–15:30."
+            : "School-hours game checks are on. Allow VERITY under Privacy & Security → Accessibility so it can close games."
+    }
+
     private func enable() {
         guard CGPreflightScreenCaptureAccess() else {
             let requested = CGRequestScreenCaptureAccess()
@@ -300,9 +312,9 @@ final class VerityScreenWatcher: ObservableObject {
 
             if didClose {
                 switch target {
-                case .browserSite:
+                case .browserSite(_):
                     closeActiveBrowserTab()
-                case .application:
+                case .application(_):
                     quitActiveGameApplication()
                 }
             }
