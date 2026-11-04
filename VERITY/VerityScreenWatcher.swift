@@ -130,7 +130,7 @@ final class VerityScreenWatcher: ObservableObject {
                 windowTitle: window.title,
                 visibleText: recognizedText
            ),
-           Date().timeIntervalSince(lastSchoolGamingInterventionAt) > 18 {
+           Date().timeIntervalSince(lastSchoolGamingInterventionAt) > 45 {
             lastSchoolGamingInterventionAt = Date()
             interveneForSchoolGaming(target: gamingTarget, bundleID: bundleID, windowID: window.id)
             return
@@ -326,9 +326,9 @@ final class VerityScreenWatcher: ObservableObject {
             let finalComment: String
             if didClose {
                 switch target {
-                case .browserSite:
+                case .browserSite(_):
                     finalComment = "\(targetName) tab closed. Now get back to class."
-                case .application:
+                case .application(_):
                     finalComment = "\(targetName) was quit. Now get back to class."
                 }
             } else if !guardStillEnabled {
