@@ -284,9 +284,9 @@ final class VerityScreenWatcher: ObservableObject {
             actionDescription = "quitting that game"
         }
 
-        let scolding = "School hours. \(targetName) can wait. You're meant to be learning, not grinding XP. I'm \(actionDescription)."
+        let scolding = "You're gaming during class? Embarrassing. \(targetName) can wait. I'm \(actionDescription). Back to work."
         VerityModel.shared.setStatus(scolding)
-        VerityModel.shared.showReaction(.shocked, duration: 2_800_000_000)
+        VerityModel.shared.showReaction(.angry, duration: 2_800_000_000)
         VerityBlurOverlay.shared.show(message: "CLASS TIME. GAME TIME IS OVER.")
         VerityCommentBubble.shared.show(message: scolding)
 
