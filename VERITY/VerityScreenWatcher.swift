@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import ApplicationServices
 import Combine
 import Vision
@@ -18,8 +19,7 @@ final class VerityScreenWatcher: ObservableObject {
     private var lastInterventionAt = Date.distantPast
     private var interventionInProgress = false
 
-    private init() {}
-
+    private init() {\n        UserDefaults.standard.register(defaults: [Self.closeExplicitTabsKey: true])\n    }\n
     func startIfEnabled() {
         guard UserDefaults.standard.bool(forKey: Self.enabledKey) else {
             status = "Screen awareness is off."
@@ -182,7 +182,7 @@ final class VerityScreenWatcher: ObservableObject {
             interventionInProgress = false
             status = shouldClose && hasAccessibility
                 ? "Explicit browser content blurred and the active tab was closed."
-                : "Explicit browser content detected and blurred. Enable Accessibility to close tabs automatically."
+                : (shouldClose ? "Content blurred. Enable Accessibility to allow automatic tab closing." : "Content blurred. Automatic tab closing is disabled.")
             VerityModel.shared.setStatus(
                 shouldClose && hasAccessibility
                     ? "There. Tab closed. Try having better taste."
