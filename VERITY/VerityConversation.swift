@@ -596,58 +596,6 @@ final class VerityConversationModel: ObservableObject {
     }
 }
 
-@MainActor
-private enum VerityScriptedReplies {
-    static func reply(for rawText: String) -> String? {
-        let text = rawText.lowercased()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "!?., "))
-
-        if ["hi", "hey", "hello", "yo", "hiya"].contains(text) ||
-            text.hasPrefix("hello ") || text.hasPrefix("hey ") {
-            return [
-                "Hello. You found the smartest ball on your desktop. What do you need?",
-                "There you are. Ask away; I was getting bored being right.",
-                "Hello. I know everything. Try to keep up."
-            ].randomElement()
-        }
-        if text.contains("good morning") {
-            return "Good morning. The day has improved now that I'm here."
-        }
-        if text.contains("good night") || text == "goodnight" {
-            return "Good night. Try not to miss having the answers."
-        }
-        if text.contains("thank") {
-            return "Naturally. You're welcome."
-        }
-        if text == "who are you" || text.contains("what are you") {
-            return "I'm Verity: the smartest ball on your desktop. I know everything worth knowing. Ask properly."
-        }
-        if text.contains("what can you do") || text == "help" {
-            return "I answer questions, solve problems, and read documents you deliberately give me. In short: I handle the clever part."
-        }
-        if text.contains("are you watching") || text.contains("watching me") || text.contains("are you spying") {
-            return "No. I don't watch your screen. I only know what you type, say, or deliberately share. I simply have excellent timing."
-        }
-        if text.contains("are you real") {
-            return "Real enough to be right. Mostly."
-        }
-        if text.contains("tell me a joke") || text == "joke" || text.contains("make me laugh") {
-            return "Why did the computer get cold? It left its Windows open. Try not to laugh too hard."
-        }
-        if text.contains("fun fact") {
-            return "Here's a fun fact: an octopus has three hearts. Two of them stop beating when it swims. Isn't that amazing?"
-        }
-        if text == "dance" || text.contains("do a dance") {
-            return "I can manage a tiny wiggle. There we go."
-        }
-        if text == "bye" || text == "goodbye" || text == "see you" {
-            return "Go on, then. I'll still be the smartest thing on your desktop when you return."
-        }
-        return nil
-    }
-}
-
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
     let onClose: () -> Void

@@ -22,10 +22,10 @@ enum VerityResponseParser {
     static func streamDelta(from data: Data) -> String {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return "" }
         if let choices = object["choices"] as? [[String: Any]], let first = choices.first {
-            if let delta = first["delta"], let text = textValue(delta), !text.isEmpty { return text }
-            if let message = first["message"], let text = textValue(message), !text.isEmpty { return text }
+            if let delta = first["delta"], let text = textValue(delta, preservingWhitespace: true), !text.isEmpty { return text }
+            if let message = first["message"], let text = textValue(message, preservingWhitespace: true), !text.isEmpty { return text }
         }
-        if let delta = object["delta"], let text = textValue(delta), !text.isEmpty { return text }
+        if let delta = object["delta"], let text = textValue(delta, preservingWhitespace: true), !text.isEmpty { return text }
         if let token = object["token"] as? String { return token }
         return ""
     }
@@ -46,19 +46,20 @@ enum VerityResponseParser {
         return patterns.contains { text.range(of: $0, options: .regularExpression) != nil }
     }
 
-    private static func textValue(_ value: Any?) -> String? {
+    private static func textValue(_ value: Any?, preservingWhitespace: Bool = false) -> String? {
         if let text = value as? String {
+            if preservingWhitespace { return text.isEmpty ? nil : text }
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? nil : trimmed
         }
         if let dictionary = value as? [String: Any] {
             for key in ["text", "content", "output_text", "response", "answer"] {
-                if let result = textValue(dictionary[key]) { return result }
+                if let result = textValue(dictionary[key], preservingWhitespace: preservingWhitespace) { return result }
             }
         }
         if let items = value as? [Any] {
-            let parts = items.compactMap { textValue($0) }
-            return parts.isEmpty ? nil : parts.joined(separator: "\n")
+            let parts = items.compactMap { textValue($0, preservingWhitespace: preservingWhitespace) }
+            return parts.isEmpty ? nil : parts.joined(separator: preservingWhitespace ? "" : "\n")
         }
         return nil
     }

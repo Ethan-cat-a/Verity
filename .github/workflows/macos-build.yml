@@ -22,6 +22,9 @@ jobs:
           swiftc -parse-as-library \
             VERITY/VerityResponseParser.swift \
             VERITY/VerityMemoryCipher.swift \
+            VERITY/VerityMemory.swift \
+            VERITY/VerityKeychain.swift \
+            VERITY/VerityScriptedReplies.swift \
             VERITY/VerityScreenSignals.swift \
             Tests/VerityRegressionTests.swift \
             -o "$RUNNER_TEMP/VERITY-RegressionTests"
