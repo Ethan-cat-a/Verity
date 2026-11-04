@@ -51,7 +51,7 @@ struct VerityRegressionTests {
         check(VerityScreenSignals.schoolHoursGamingTarget(
             appName: "Safari",
             bundleID: "com.apple.Safari",
-            windowTitle: "CrazyGames - Play free online games",
+            windowTitle: "Crazy Games - Play free online games",
             visibleText: ""
         ) == .browserSite("CrazyGames"), "CrazyGames is recognized in a supported browser")
         check(VerityScreenSignals.schoolHoursGamingTarget(
