@@ -82,6 +82,7 @@ final class VerityScreenWatcher: ObservableObject {
         isWatching = false
         interventionInProgress = false
         VerityBlurOverlay.shared.hide()
+        VerityCommentBubble.shared.hide()
         status = "Screen awareness is off."
     }
 
@@ -158,6 +159,7 @@ final class VerityScreenWatcher: ObservableObject {
         lastCommentAt = Date()
         VerityModel.shared.setStatus(reaction)
         VerityModel.shared.showReaction(.happy, duration: 1_900_000_000)
+        VerityCommentBubble.shared.show(message: reaction)
     }
 
     private func interveneForExplicitContent(appName: String) {
@@ -186,11 +188,11 @@ final class VerityScreenWatcher: ObservableObject {
             status = shouldClose && hasAccessibility
                 ? "Explicit browser content blurred and the active tab was closed."
                 : (shouldClose ? "Content blurred. Enable Accessibility to allow automatic tab closing." : "Content blurred. Automatic tab closing is disabled.")
-            VerityModel.shared.setStatus(
-                shouldClose && hasAccessibility
-                    ? "There. Tab closed. Try having better taste."
-                    : "I blurred that. Enable Accessibility if you want me to close tabs too."
-            )
+            let finalComment = shouldClose && hasAccessibility
+                ? "There. Tab closed. Try having better taste."
+                : "I blurred that. Enable Accessibility if you want me to close tabs too."
+            VerityModel.shared.setStatus(finalComment)
+            VerityCommentBubble.shared.show(message: finalComment)
         }
     }
 
@@ -203,6 +205,80 @@ final class VerityScreenWatcher: ObservableObject {
         keyUp?.flags = .maskCommand
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
+    }
+}
+
+@MainActor
+private final class VerityCommentBubble {
+    static let shared = VerityCommentBubble()
+    private var panel: NSPanel?
+    private var dismissalTask: Task<Void, Never>?
+
+    func show(message: String) {
+        guard let screen = NSScreen.main else { return }
+        dismissalTask?.cancel()
+
+        let size = NSSize(width: 320, height: 92)
+        let frame = screen.visibleFrame
+        let origin = NSPoint(x: frame.maxX - size.width - 22, y: frame.minY + 246)
+        let windowFrame = NSRect(origin: origin, size: size)
+
+        if panel == nil {
+            let bubble = NSPanel(
+                contentRect: windowFrame,
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            bubble.isFloatingPanel = true
+            bubble.level = .floating
+            bubble.isOpaque = false
+            bubble.backgroundColor = .clear
+            bubble.ignoresMouseEvents = true
+            bubble.hidesOnDeactivate = false
+            bubble.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            panel = bubble
+        }
+
+        panel?.contentView = NSHostingView(rootView: VerityCommentBubbleView(message: message))
+        panel?.setFrame(windowFrame, display: true)
+        panel?.orderFrontRegardless()
+
+        dismissalTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 4_800_000_000)
+            guard !Task.isCancelled else { return }
+            self?.panel?.orderOut(nil)
+        }
+    }
+
+    func hide() {
+        dismissalTask?.cancel()
+        dismissalTask = nil
+        panel?.orderOut(nil)
+    }
+}
+
+private struct VerityCommentBubbleView: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 11) {
+            VerityFace(size: 46, mood: .happy)
+            Text(message)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 10)
+        .frame(width: 320, height: 92)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.55), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.22), radius: 14, y: 7)
     }
 }
 
