@@ -11,9 +11,6 @@ struct VerityApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Settings {
-            VeritySettingsView()
-        }
     }
 }
 
@@ -81,7 +78,7 @@ struct VerityMenuBarView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                VeritySettingsWindowController.shared.show()
             } label: {
                 Label("Settings…", systemImage: "gearshape")
             }
