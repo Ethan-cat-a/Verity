@@ -21,7 +21,9 @@
 		A1000000000000000000000F /* VerityMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* VerityMemory.swift */; };
 		A10000000000000000000010 /* VerityResponseParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* VerityResponseParser.swift */; };
 		A10000000000000000000011 /* VerityMemoryCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* VerityMemoryCipher.swift */; };
-\t\tA10000000000000000000012 /* VerityScreenSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* VerityScreenSignals.swift */; };\n\t\tA10000000000000000000013 /* VerityScreenWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* VerityScreenWatcher.swift */; };\n/* End PBXBuildFile section */
+		A10000000000000000000012 /* VerityScreenSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* VerityScreenSignals.swift */; };
+		A10000000000000000000013 /* VerityScreenWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* VerityScreenWatcher.swift */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B10000000000000000000001 /* VerityApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityApp.swift; sourceTree = "<group>"; };
@@ -42,7 +44,9 @@
 		B10000000000000000000018 /* VerityMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemory.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* VerityResponseParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityResponseParser.swift; sourceTree = "<group>"; };
 		B10000000000000000000020 /* VerityMemoryCipher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityMemoryCipher.swift; sourceTree = "<group>"; };
-\t\tB10000000000000000000021 /* VerityScreenSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenSignals.swift; sourceTree = "<group>"; };\n\t\tB10000000000000000000022 /* VerityScreenWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenWatcher.swift; sourceTree = "<group>"; };\n/* End PBXFileReference section */
+		B10000000000000000000021 /* VerityScreenSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenSignals.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* VerityScreenWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenWatcher.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C10000000000000000000001 /* Frameworks */ = {
