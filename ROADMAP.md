@@ -1,4 +1,4 @@
-# VERITY 0.10.0 — focused product direction
+# VERITY 1.0.0 — focused product direction
 
 ## Product identity
 
