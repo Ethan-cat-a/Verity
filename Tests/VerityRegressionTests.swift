@@ -25,6 +25,15 @@ struct VerityRegressionTests {
         check(VerityResponseParser.containsSensitiveInformation("token: abcdefghijklmnopqrstuvwxyz123456"), "Credential assignment detection")
         check(!VerityResponseParser.containsSensitiveInformation("I prefer a clean desktop and short answers."), "Normal memory remains allowed")
 
+        check(VerityScreenSignals.containsExplicitText("This page is marked NSFW"), "Explicit screen text signal")
+        check(VerityScreenSignals.containsExplicitText("Visit xvideos.com"), "Adult domain signal")
+        check(!VerityScreenSignals.containsExplicitText("A normal research page about biology"), "Ordinary page is not flagged")
+        check(!VerityScreenSignals.containsExplicitText("The XXXL shirt fits well"), "Keyword matching respects word boundaries")
+        check(VerityScreenSignals.isBrowserBundle("com.google.Chrome"), "Chrome recognized as a supported browser")
+        check(!VerityScreenSignals.isBrowserBundle("com.apple.finder"), "Finder is not treated as a browser")
+        check(VerityScreenSignals.reaction(forApplication: "Minecraft") != nil, "Game app receives a scripted reaction")
+        check(VerityScreenSignals.reaction(forApplication: "Finder") == nil, "Unrecognized apps are not spammed with reactions")
+
         let key = Data(repeating: 0x42, count: 32)
         let plaintext = Data("Verity's private memory archive".utf8)
         let envelope = try VerityMemoryCipher.seal(plaintext, keyData: key)

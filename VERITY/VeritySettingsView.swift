@@ -12,6 +12,9 @@ struct VeritySettingsView: View {
     @State private var previewPlayer: AVAudioPlayer?
     @AppStorage(VerityVoiceService.voicePreferenceKey) private var selectedVoiceID = VerityVoiceService.defaultVoiceID
     @AppStorage(VerityCharacterPreferences.eerieIdleEnabledKey) private var eerieIdleEnabled = true
+    @AppStorage(VerityScreenWatcher.enabledKey) private var screenAwarenessEnabled = false
+    @AppStorage(VerityScreenWatcher.closeExplicitTabsKey) private var closeExplicitTabs = true
+    @ObservedObject private var screenWatcher = VerityScreenWatcher.shared
     @AppStorage(VerityVoiceService.useElevenLabsPreferenceKey) private var useElevenLabsVoice = false
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
     @State private var memoryMessage = ""
@@ -20,17 +23,27 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.0"
     }
 
     var body: some View {
         Form {
             Section("The character") {
                 Toggle("Occasional unsettling stare", isOn: $eerieIdleEnabled)
-                Text("Once in a while, Verity drops the smile and holds a strange stare for a few seconds. No screen watching, no background monitoring.")
+                Text("Once in a while, Verity drops the smile and holds a strange stare for a few seconds. Screen awareness is a separate opt-in setting.")
                     .font(.caption).foregroundStyle(.secondary)
                 Label("A know-it-all ball with a big ego. Usually helpful. Occasionally odd.", systemImage: "face.smiling")
                     .font(.callout)
+            }
+
+            Section("Screen awareness") {
+                Toggle("Let VERITY watch the active screen", isOn: $screenAwarenessEnabled)
+                Toggle("Blur, then close obvious explicit browser tabs", isOn: $closeExplicitTabs)
+                    .disabled(!screenAwarenessEnabled)
+                Text("When enabled, VERITY checks the frontmost window about every six seconds. Text recognition and keyword checks run locally; screenshots are not uploaded or saved. Obvious adult terms in visible browser text trigger a brief blur, then VERITY sends Command-W to close that tab. It can miss image-only content or misread context, and closing a tab may discard unsaved form contents.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Label(screenWatcher.status, systemImage: screenWatcher.isWatching ? "eye" : "eye.slash")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Voice") {
@@ -137,8 +150,15 @@ struct VeritySettingsView: View {
             refreshVoiceKeyStatus()
             await checkConnection()
             if automaticUpdateChecks { updateChecker.startAutomaticChecks() }
+            screenWatcher.startIfEnabled()
         }
         .onDisappear { previewPlayer?.stop() }
+        .onChange(of: screenAwarenessEnabled) { enabled in
+            screenWatcher.setEnabled(enabled)
+        }
+        .onChange(of: closeExplicitTabs) { enabled in
+            screenWatcher.setCloseEnabled(enabled)
+        }
         .onChange(of: automaticUpdateChecks) { enabled in
             if enabled { updateChecker.startAutomaticChecks() }
             else { updateChecker.stopAutomaticChecks() }
