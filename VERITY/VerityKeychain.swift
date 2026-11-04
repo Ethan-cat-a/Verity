@@ -6,6 +6,7 @@ enum VerityKeychain {
     private static let service = Bundle.main.bundleIdentifier ?? "com.verity.desktop"
     private static let account = "openai-api-key"
     private static let elevenLabsAccount = "elevenlabs-api-key"
+    private static let fishAudioAccount = "fish-audio-api-key"
     private static let memoryEncryptionAccount = "verity-memory-encryption-key"
 
     static func saveAPIKey(_ apiKey: String) throws {
@@ -82,6 +83,20 @@ enum VerityKeychain {
 
     static func deleteElevenLabsAPIKey() throws {
         try delete(account: elevenLabsAccount)
+    }
+
+    static func saveFishAudioAPIKey(_ apiKey: String) throws {
+        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw KeychainError(status: errSecParam) }
+        try save(trimmed, account: fishAudioAccount)
+    }
+
+    static func readFishAudioAPIKey() throws -> String? {
+        try read(account: fishAudioAccount)
+    }
+
+    static func deleteFishAudioAPIKey() throws {
+        try delete(account: fishAudioAccount)
     }
 
     private static func save(_ value: String, account: String) throws {

@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
+import SceneKit
 
 /// The single, focused VERITY surface: one character, one conversation, one job.
 struct VerityDesktopView: View {
@@ -126,17 +127,17 @@ struct VerityDesktopView: View {
         if isDropTargeted { return "Excellent. Something worth my attention." }
         if model.isEating { return "I'm inspecting it. You're welcome." }
         switch model.mood {
-        case .listening: return "Go on. I'm listening."
-        case .thinking: return "One moment. Being brilliant takes a second."
-        case .speaking: return "See? Obviously."
-        case .shocked: return "Well. That's inconvenient."
-        case .suspicious: return "Interesting. Very interesting."
-        case .angry: return "You could have asked more politely."
-        case .manic, .excited: return "Another problem solved. Naturally."
-        case .sleepy: return "I was busy knowing things. Go on."
+        case .listening: return "Go on. I am paying attention."
+        case .thinking: return "One moment. I have found the interesting part."
+        case .speaking: return "There. Exactly as expected."
+        case .shocked: return "Oh. That is unexpected."
+        case .suspicious: return "I noticed a small inconsistency."
+        case .angry: return "That was unnecessary. Continue."
+        case .manic, .excited: return "I did enjoy being right about that."
+        case .sleepy: return "I was thinking. You may continue."
         case .eating: return "A little snack. Don't mind me."
-        case .eerie: return "You didn't hear that."
-        case .happy: return "Hello. Ask me anything. I know everything."
+        case .eerie: return "We can pretend that was normal."
+        case .happy: return "Hello. I am ready. I have been ready."
         }
     }
 }
@@ -250,219 +251,266 @@ enum VerityMood: Equatable {
     case eerie
 }
 
-/// Verity's original look: a bright yellow smiley sphere with simple black features.
- /// The unsettling face is reserved for a short, occasional idle reaction.
+/// A softly lit, genuinely 3D yellow orb with an original face and expressions.
 struct VerityFace: View {
     var size: CGFloat = 180
     var mood: VerityMood = .happy
-    @State private var mouthOpen = false
-    @State private var isBlinking = false
-
-    private var animatedMouth: Bool {
-        mood == .speaking || mood == .eating
-    }
-
-    private var wideMouth: Bool {
-        mood == .eerie
-    }
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.98, blue: 0.28),
-                            Color(red: 1.0, green: 0.88, blue: 0.02),
-                            Color(red: 0.91, green: 0.68, blue: 0.0)
-                        ],
-                        center: UnitPoint(x: 0.30, y: 0.22),
-                        startRadius: size * 0.015,
-                        endRadius: size * 0.82
-                    )
-                )
-                .overlay(Circle().stroke(Color.black.opacity(0.12), lineWidth: max(1, size * 0.008)))
-                .overlay(alignment: .topLeading) {
-                    Ellipse()
-                        .fill(.white.opacity(0.34))
-                        .frame(width: size * 0.23, height: size * 0.085)
-                        .blur(radius: size * 0.014)
-                        .rotationEffect(.degrees(-28))
-                        .offset(x: size * 0.16, y: size * 0.095)
-                }
+            Ellipse()
+                .fill(RadialGradient(
+                    colors: [.black.opacity(0.28), .black.opacity(0.10), .clear],
+                    center: .center,
+                    startRadius: 1,
+                    endRadius: size * 0.40
+                ))
+                .frame(width: size * 0.72, height: size * 0.17)
+                .offset(y: size * 0.39)
+                .blur(radius: size * 0.025)
 
-            HStack(spacing: size * 0.255) {
-                eye(isLeft: true)
-                eye(isLeft: false)
-            }
-            .offset(y: -size * 0.145)
-
-            if mood == .angry || mood == .suspicious || mood == .eerie {
-                HStack(spacing: size * 0.21) {
-                    brow(isLeft: true)
-                    brow(isLeft: false)
-                }
-                .offset(y: -size * 0.255)
-            }
-
-            mouth
-                .offset(y: size * 0.185)
+            VerityOrbScene(mood: mood)
+                .frame(width: size, height: size)
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Verity, a bright yellow smiley sphere with black oval eyes and a curved smile")
-        .task(id: mood) {
-            if mood == .eerie {
-                isBlinking = false
-            }
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64.random(in: 2_800...5_200) * 1_000_000)
-                guard mood != .eerie else {
-                    isBlinking = false
-                    continue
-                }
-                withAnimation(.easeInOut(duration: 0.075)) { isBlinking = true }
-                try? await Task.sleep(nanoseconds: 115_000_000)
-                withAnimation(.easeInOut(duration: 0.10)) { isBlinking = false }
-            }
-        }
-        .task(id: mood) {
-            guard animatedMouth else {
-                mouthOpen = wideMouth || mood == .shocked
-                return
-            }
-            while !Task.isCancelled {
-                withAnimation(.easeInOut(duration: 0.075)) {
-                    mouthOpen.toggle()
-                }
-                try? await Task.sleep(nanoseconds: mood == .eating ? 145_000_000 : 175_000_000)
-            }
-        }
-    }
-
-    private func eye(isLeft: Bool) -> some View {
-        let heightFactor: CGFloat = isBlinking ? 0.018
-            : (mood == .eerie ? (isLeft ? 0.19 : 0.12)
-            : (mood == .sleepy ? 0.055
-            : (mood == .shocked ? 0.18 : 0.15)))
-        let widthFactor: CGFloat = mood == .eerie ? 0.12 : (mood == .shocked ? 0.13 : 0.105)
-        let angle: Double = mood == .eerie ? (isLeft ? -5 : 7)
-            : (mood == .angry ? (isLeft ? 15 : -15)
-            : (mood == .suspicious ? (isLeft ? -7 : 8) : 0))
-
-        return Ellipse()
-            .fill(Color(red: 0.012, green: 0.010, blue: 0.006))
-            .frame(width: size * widthFactor, height: size * heightFactor)
-            .rotationEffect(.degrees(angle))
-            .animation(.spring(response: 0.22, dampingFraction: 0.65), value: mood)
-            .animation(.easeInOut(duration: 0.10), value: isBlinking)
-    }
-
-    private func brow(isLeft: Bool) -> some View {
-        Capsule()
-            .fill(Color.black)
-            .frame(width: size * 0.15, height: size * 0.023)
-            .rotationEffect(.degrees(mood == .angry ? (isLeft ? 18 : -18) : (isLeft ? -12 : 10)))
-            .offset(y: isLeft ? size * 0.008 : -size * 0.004)
-    }
-
-    @ViewBuilder
-    private var mouth: some View {
-        if mood == .shocked {
-            Ellipse()
-                .fill(Color.black)
-                .frame(width: size * 0.17, height: size * 0.23)
-        } else if mood == .eerie {
-            openGrin
-        } else if mouthOpen || wideMouth {
-            openGrin
-        } else {
-            closedGrin
-        }
-    }
-
-    private var closedGrin: some View {
-        VerityClosedSmileShape()
-            .stroke(
-                Color.black,
-                style: StrokeStyle(
-                    lineWidth: max(2, size * 0.018),
-                    lineCap: .round,
-                    lineJoin: .round
-                )
-            )
-            .frame(width: size * 0.36, height: size * 0.09)
-    }
-
-    private var openGrin: some View {
-        let grinWidth: CGFloat = mood == .eerie ? 0.48 : (wideMouth ? 0.40 : 0.29)
-        let grinHeight: CGFloat = mood == .eerie ? 0.34 : (wideMouth ? 0.28 : 0.20)
-        let toothCount = mood == .eerie ? 8 : 5
-
-        return ZStack {
-            Ellipse()
-                .fill(Color.black)
-                .frame(width: size * grinWidth, height: size * grinHeight)
-
-            Ellipse()
-                .fill(Color(red: 0.55, green: 0.04, blue: 0.035))
-                .frame(width: size * grinWidth * 0.66, height: size * grinHeight * 0.30)
-                .offset(y: size * grinHeight * 0.28)
-
-            VStack(spacing: size * 0.045) {
-                toothRow(count: toothCount, toothHeight: size * (mood == .eerie ? 0.060 : 0.035))
-                if mood == .eerie {
-                    Spacer(minLength: size * 0.012)
-                    toothRow(count: 7, toothHeight: size * 0.046)
-                }
-            }
-            .frame(width: size * grinWidth * 0.88, height: size * grinHeight * 0.78)
-            .padding(.vertical, size * 0.008)
-        }
-        .frame(width: size * 0.53, height: size * 0.37)
-    }
-
-    private func toothRow(count: Int, toothHeight: CGFloat) -> some View {
-        HStack(spacing: size * 0.006) {
-            ForEach(0..<count, id: \.self) { index in
-                RoundedRectangle(cornerRadius: size * 0.008, style: .continuous)
-                    .fill(Color(red: 1.0, green: 0.96, blue: 0.82))
-                    .frame(
-                        width: size * (index == count / 2 ? 0.055 : 0.047),
-                        height: toothHeight
-                    )
-            }
-        }
+        .accessibilityLabel("Verity, a floating three-dimensional yellow orb with dark eyes and a shifting smile")
+        .accessibilityAddTraits(.isImage)
     }
 }
 
-private struct VerityClosedSmileShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.04, y: rect.minY + rect.height * 0.18))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX - rect.width * 0.04, y: rect.minY + rect.height * 0.18),
-            control: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.92)
-        )
-        return path
-    }
-}
+private struct VerityOrbScene: NSViewRepresentable {
+    let mood: VerityMood
 
-private struct VeritySmileCavityShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.02, y: rect.minY + rect.height * 0.12))
-        path.addCurve(
-            to: CGPoint(x: rect.maxX - rect.width * 0.02, y: rect.minY + rect.height * 0.12),
-            control1: CGPoint(x: rect.minX + rect.width * 0.25, y: rect.maxY * 0.98),
-            control2: CGPoint(x: rect.maxX - rect.width * 0.25, y: rect.maxY * 0.98)
-        )
-        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.minY + rect.height * 0.34))
-        path.addCurve(
-            to: CGPoint(x: rect.minX + rect.width * 0.10, y: rect.minY + rect.height * 0.34),
-            control1: CGPoint(x: rect.maxX - rect.width * 0.30, y: rect.minY + rect.height * 0.48),
-            control2: CGPoint(x: rect.minX + rect.width * 0.30, y: rect.minY + rect.height * 0.48)
-        )
-        path.closeSubpath()
-        return path
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> SCNView {
+        let view = SCNView(frame: .zero)
+        view.scene = context.coordinator.scene
+        view.pointOfView = context.coordinator.camera
+        view.backgroundColor = .clear
+        view.autoenablesDefaultLighting = false
+        view.allowsCameraControl = false
+        view.antialiasingMode = .multisampling4X
+        view.preferredFramesPerSecond = 30
+        view.rendersContinuously = false
+        view.layer?.backgroundColor = NSColor.clear.cgColor
+        context.coordinator.update(mood)
+        return view
+    }
+
+    func updateNSView(_ view: SCNView, context: Context) {
+        context.coordinator.update(mood)
+    }
+
+    final class Coordinator {
+        let scene = SCNScene()
+        let camera = SCNNode()
+        private let orb = SCNNode(geometry: SCNSphere(radius: 1))
+        private let eyes = [SCNNode(), SCNNode()]
+        private let brows = [SCNNode(), SCNNode()]
+        private let smile = SCNNode()
+        private let cavity = SCNNode(geometry: SCNSphere(radius: 1))
+        private let tongue = SCNNode(geometry: SCNSphere(radius: 1))
+        private let teeth = (0..<9).map { _ in SCNNode(geometry: SCNSphere(radius: 1)) }
+        private var lastMood: VerityMood?
+
+        init() {
+            scene.background.contents = NSColor.clear
+
+            let ball = SCNSphere(radius: 1)
+            ball.segmentCount = 96
+            let skin = SCNMaterial()
+            skin.lightingModel = .physicallyBased
+            skin.diffuse.contents = NSColor(calibratedRed: 1.0, green: 0.79, blue: 0.035, alpha: 1)
+            skin.metalness.contents = 0.03
+            skin.roughness.contents = 0.27
+            skin.specular.contents = NSColor(calibratedWhite: 1, alpha: 1)
+            skin.shininess = 0.72
+            skin.isDoubleSided = true
+            ball.materials = [skin]
+            orb.geometry = ball
+            scene.rootNode.addChildNode(orb)
+
+            let dark = SCNMaterial()
+            dark.lightingModel = .physicallyBased
+            dark.diffuse.contents = NSColor(calibratedWhite: 0.009, alpha: 1)
+            dark.metalness.contents = 0.04
+            dark.roughness.contents = 0.17
+            dark.specular.contents = NSColor(calibratedWhite: 0.72, alpha: 1)
+            dark.shininess = 0.85
+
+            for (index, eye) in eyes.enumerated() {
+                let geometry = SCNSphere(radius: 1)
+                geometry.segmentCount = 32
+                geometry.materials = [dark]
+                eye.geometry = geometry
+                eye.position = SCNVector3(index == 0 ? -0.29 : 0.29, 0.16, Self.surfaceZ(x: 0.29, y: 0.16) + 0.025)
+                orb.addChildNode(eye)
+            }
+
+            let browMaterial = SCNMaterial()
+            browMaterial.diffuse.contents = NSColor(calibratedWhite: 0.018, alpha: 1)
+            for (index, brow) in brows.enumerated() {
+                let geometry = SCNCapsule(capRadius: 0.025, height: 0.20)
+                geometry.materials = [browMaterial]
+                brow.geometry = geometry
+                brow.position = SCNVector3(index == 0 ? -0.29 : 0.29, 0.38, Self.surfaceZ(x: 0.29, y: 0.38) + 0.025)
+                brow.eulerAngles.z = index == 0 ? -0.18 : 0.18
+                orb.addChildNode(brow)
+                brow.isHidden = true
+            }
+
+            let ink = SCNMaterial()
+            ink.diffuse.contents = NSColor(calibratedRed: 0.008, green: 0.006, blue: 0.006, alpha: 1)
+            ink.roughness.contents = 0.42
+            ink.isDoubleSided = true
+            smile.geometry = Self.makeSmileMaterialShape(material: ink)
+            orb.addChildNode(smile)
+
+            cavity.geometry?.materials = [ink]
+            cavity.position = SCNVector3(0, -0.28, Self.surfaceZ(x: 0, y: -0.28) + 0.045)
+            cavity.scale = SCNVector3(0.34, 0.20, 0.075)
+            orb.addChildNode(cavity)
+            cavity.isHidden = true
+
+            let red = SCNMaterial()
+            red.diffuse.contents = NSColor(calibratedRed: 0.32, green: 0.018, blue: 0.018, alpha: 1)
+            tongue.geometry?.materials = [red]
+            tongue.position = SCNVector3(0, -0.36, Self.surfaceZ(x: 0, y: -0.36) + 0.09)
+            tongue.scale = SCNVector3(0.20, 0.065, 0.018)
+            orb.addChildNode(tongue)
+            tongue.isHidden = true
+
+            for (index, tooth) in teeth.enumerated() {
+                let enamel = SCNMaterial()
+                enamel.diffuse.contents = NSColor(calibratedRed: 1, green: 0.94, blue: 0.78, alpha: 1)
+                enamel.roughness.contents = 0.23
+                let box = SCNBox(width: index % 3 == 1 ? 0.082 : 0.066, height: index < 5 ? 0.075 : 0.060, length: 0.035, chamferRadius: 0.018)
+                box.materials = [enamel]
+                tooth.geometry = box
+                let position = index < 5 ? index : index - 5
+                let count = index < 5 ? 5 : 4
+                let x = (Float(position) - Float(count - 1) / 2) * 0.125
+                let upper = index < 5
+                let y = upper ? -0.19 - 0.11 * (1 - abs(x) / 0.31) : -0.39 + 0.10 * (1 - abs(x) / 0.25)
+                tooth.position = SCNVector3(x, y, Self.surfaceZ(x: x, y: y) + 0.092)
+                orb.addChildNode(tooth)
+                tooth.isHidden = true
+            }
+
+            let key = SCNNode()
+            let keyLight = SCNLight()
+            keyLight.type = .omni
+            keyLight.intensity = 950
+            keyLight.color = NSColor(calibratedRed: 1, green: 0.94, blue: 0.78, alpha: 1)
+            key.light = keyLight
+            key.position = SCNVector3(-2.4, 3.2, 4.0)
+            scene.rootNode.addChildNode(key)
+
+            let fill = SCNNode()
+            let fillLight = SCNLight()
+            fillLight.type = .omni
+            fillLight.intensity = 280
+            fillLight.color = NSColor(calibratedRed: 0.72, green: 0.81, blue: 1, alpha: 1)
+            fill.light = fillLight
+            fill.position = SCNVector3(3.0, -1.2, 2.6)
+            scene.rootNode.addChildNode(fill)
+
+            let rim = SCNNode()
+            let rimLight = SCNLight()
+            rimLight.type = .omni
+            rimLight.intensity = 500
+            rimLight.color = NSColor(calibratedRed: 1, green: 0.54, blue: 0.13, alpha: 1)
+            rim.light = rimLight
+            rim.position = SCNVector3(0.4, 2.4, -2.4)
+            scene.rootNode.addChildNode(rim)
+
+            let cameraGeometry = SCNCamera()
+            cameraGeometry.usesOrthographicProjection = true
+            cameraGeometry.orthographicScale = 2.48
+            camera.camera = cameraGeometry
+            camera.position = SCNVector3(0, 0, 4.2)
+            scene.rootNode.addChildNode(camera)
+        }
+
+        func update(_ mood: VerityMood) {
+            guard mood != lastMood else { return }
+            lastMood = mood
+
+            let isEerie = mood == .eerie || mood == .manic
+            let eyeWidth: Float = isEerie ? 0.125 : (mood == .shocked ? 0.13 : 0.095)
+            let eyeHeight: Float = mood == .sleepy ? 0.045 : (isEerie ? 0.19 : (mood == .shocked ? 0.17 : 0.135))
+            for (index, eye) in eyes.enumerated() {
+                let asymmetry: Float = isEerie ? (index == 0 ? 1.12 : 0.78) : 1
+                eye.scale = SCNVector3(eyeWidth, eyeHeight * asymmetry, 0.055)
+                eye.eulerAngles.z = isEerie ? (index == 0 ? -0.08 : 0.13) : 0
+            }
+
+            let showBrows = mood == .angry || mood == .suspicious || isEerie
+            for (index, brow) in brows.enumerated() {
+                brow.isHidden = !showBrows
+                brow.eulerAngles.z = mood == .angry
+                    ? (index == 0 ? 0.34 : -0.34)
+                    : (index == 0 ? -0.16 : 0.12)
+            }
+
+            let open = mood == .speaking || mood == .eating || mood == .eerie || mood == .manic || mood == .shocked
+            smile.isHidden = open
+            cavity.isHidden = !open
+            tongue.isHidden = !open || mood == .shocked
+            for (index, tooth) in teeth.enumerated() {
+                tooth.isHidden = !open || mood == .shocked || (mood != .eerie && mood != .manic && index > 4)
+            }
+            cavity.scale = isEerie
+                ? SCNVector3(0.49, 0.31, 0.09)
+                : (mood == .shocked ? SCNVector3(0.16, 0.22, 0.08) : SCNVector3(0.34, 0.20, 0.075))
+            if mood == .shocked {
+                smile.isHidden = true
+                cavity.position = SCNVector3(0, -0.28, Self.surfaceZ(x: 0, y: -0.28) + 0.045)
+            } else {
+                cavity.position = SCNVector3(0, -0.28, Self.surfaceZ(x: 0, y: -0.28) + 0.045)
+            }
+        }
+
+        private static func surfaceZ(x: Float, y: Float) -> Float {
+            sqrt(max(0.06, 1 - x * x - y * y))
+        }
+
+        private static func makeSmileMaterialShape(material: SCNMaterial) -> SCNGeometry {
+            let segments = 36
+            let width: Float = 0.72
+            let thickness: Float = 0.035
+            var vertices: [SCNVector3] = []
+            var indices: [Int32] = []
+
+            for index in 0...segments {
+                let t = Float(index) / Float(segments)
+                let x = (t - 0.5) * width
+                let y = -0.20 - sin(t * .pi) * 0.19
+                let dx: Float = 1
+                let dy = -0.19 * .pi * cos(t * .pi) * 2 / width
+                let length = sqrt(dx * dx + dy * dy)
+                let nx = -dy / length
+                let ny = dx / length
+
+                for side: Float in [-1, 1] {
+                    let px = x + nx * thickness * side / 2
+                    let py = y + ny * thickness * side / 2
+                    vertices.append(SCNVector3(px, py, surfaceZ(x: px, y: py) + 0.035))
+                }
+
+                if index < segments {
+                    let base = Int32(index * 2)
+                    indices.append(contentsOf: [base, base + 1, base + 2, base + 1, base + 3, base + 2])
+                }
+            }
+
+            let source = SCNGeometrySource(vertices: vertices)
+            let data = indices.withUnsafeBufferPointer { Data(buffer: $0) }
+            let element = SCNGeometryElement(data: data, primitiveType: .triangles, primitiveCount: indices.count / 3, bytesPerIndex: MemoryLayout<Int32>.size)
+            let geometry = SCNGeometry(sources: [source], elements: [element])
+            geometry.materials = [material]
+            return geometry
+        }
     }
 }

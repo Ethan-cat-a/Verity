@@ -41,6 +41,13 @@ struct VerityRegressionTests {
         for prompt in ["Hello!", "THANK YOU.", "good morning", "Who are you?", "tell me a joke"] {
             check(VerityScriptedReplies.reply(for: prompt) != nil, "Simple scripted prompt: \(prompt)")
         }
+        let iconicIntroduction = VerityScriptedReplies.reply(for: "hello") ?? ""
+        check(iconicIntroduction.contains("Ask me anything. I know everything.")
+              && iconicIntroduction.contains("Within reason"), "Iconic introduction keeps a clear playful qualifier")
+        check(VerityScriptedReplies.reply(for: "Did your face change?")?.hasPrefix("I've always looked like this.") == true,
+              "Face-change callback uses the recognizable line")
+        check(VerityScriptedReplies.reply(for: "Are you still there?")?.hasPrefix("I am listening.") == true,
+              "Listening callback uses the recognizable line")
 
         check(VerityResponseParser.containsSensitiveInformation("Remember that my password is hunter2"), "Sensitive phrase detection")
         check(VerityResponseParser.containsSensitiveInformation("token: abcdefghijklmnopqrstuvwxyz123456"), "Credential assignment detection")
