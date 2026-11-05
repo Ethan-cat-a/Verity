@@ -8,6 +8,7 @@ struct VerityDocumentAssistantSheet: View {
     @State private var question = ""
     @State private var pendingPrompt: String?
     @State private var isShowingUploadConfirmation = false
+    @State private var selectedSource: VerityDocumentSource?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -69,12 +70,26 @@ struct VerityDocumentAssistantSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                if !assistant.sources.isEmpty {
+                    Text("Tap a page or section citation to inspect its passage.")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
                 ScrollView {
-                    Text(assistant.answer)
+                    Text(linkedAnswer)
                         .font(.system(size: 13, weight: .regular, design: .rounded))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                         .padding(.vertical, 2)
+                        .environment(\.openURL, OpenURLAction { url in
+                            guard url.scheme == "verity-source",
+                                  let id = url.pathComponents.last,
+                                  let source = assistant.sources.first(where: { $0.id == id }) else {
+                                return .discarded
+                            }
+                            selectedSource = source
+                            return .handled
+                        })
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, minHeight: 190, maxHeight: .infinity)
@@ -116,6 +131,50 @@ struct VerityDocumentAssistantSheet: View {
         } message: {
             Text("Verity will extract text from “\(file.name)” on your Mac and send the extracted text with this question. The original file is not uploaded. You will be asked again before each new request. Continue?")
         }
+        .sheet(item: $selectedSource) { source in
+            VStack(alignment: .leading, spacing: 12) {
+                Label(source.title, systemImage: "text.book.closed")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                Text(file.name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Divider()
+                ScrollView {
+                    Text(source.excerpt)
+                        .font(.system(size: 13, design: .rounded))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                HStack {
+                    Spacer()
+                    Button("Done") { selectedSource = nil }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(20)
+            .frame(minWidth: 440, minHeight: 300)
+        }
+    }
+
+    private var linkedAnswer: AttributedString {
+        let sourceByID = Dictionary(uniqueKeysWithValues: assistant.sources.map { ($0.id, $0) })
+        let fullAnswer = assistant.answer as NSString
+        guard let regex = try? NSRegularExpression(pattern: #"\[\[((?:P|S)\d+)\]\]"#) else {
+            return AttributedString(assistant.answer)
+        }
+
+        var markdown = assistant.answer
+        for match in regex.matches(in: assistant.answer, range: NSRange(location: 0, length: fullAnswer.length)).reversed() {
+            let id = fullAnswer.substring(with: match.range(at: 1))
+            guard let source = sourceByID[id] else { continue }
+            let replacement = "[\(source.title)](verity-source://citation/\(source.id))"
+            markdown = (markdown as NSString).replacingCharacters(in: match.range, with: replacement)
+        }
+
+        return (try? AttributedString(
+            markdown: markdown,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(assistant.answer)
     }
 
     private func quickAction(_ title: String, prompt: String) -> some View {

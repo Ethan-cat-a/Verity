@@ -1,4 +1,4 @@
-# VERITY 1.2.0 — the know-it-all orb
+# VERITY 1.2.1 — the know-it-all orb
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -6,7 +6,7 @@ A little Clippy energy. A much bigger ego. A slightly unsettling smile.
 
 VERITY is a tiny yellow desktop companion with a softly lit 3D orb, an original smile, and an air of complete certainty. Click it, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
 
-Version 1.2.0 adds the animated orb, original scripted character replies for common prompts, and an optional Fish Audio community voice.
+Version 1.2.1 refines the orb lighting, smooths its idle motion and blinks, and makes the desktop pet's breathing and eating animations gentler. Version 1.2.0 introduced the animated orb, original scripted character replies for common prompts, and an optional Fish Audio community voice.
 
 ## Download
 
@@ -29,6 +29,7 @@ This clears the quarantine flag only for the installed VERITY app; it does not d
 - A softly lit yellow 3D smiley orb stays docked on your desktop, with animated expressions and an occasional unsettling stare.
 - Click it to open one simple conversation. Type or use the microphone.
 - Drop a supported document into the window and ask about it.
+- Document answers cite clickable PDF pages or text sections; open a citation to inspect the passage Verity used.
 - VERITY has a huge ego, a sharp tongue, and a habit of acting like the answer was obvious.
 - Original scripted replies handle common greetings and character questions without a network request.
 - Say **“Remember that…”** to save a note. Memory is explicit, encrypted on your Mac, and can be disabled or cleared in Settings.
@@ -56,6 +57,10 @@ When explicitly enabled in Settings, VERITY checks for supported game activity o
 ## Diagnostics
 
 Settings opens in its own window from the menu-bar menu. The Screen awareness section includes **Check active window now** and shows the result of the latest scan, including missing permissions or an unavailable screenshot. Native game apps are checked by foreground app identity before OCR; browser pages still depend on their visible title/text and Screen Recording permission.
+
+## Automatic updates
+
+VERITY checks GitHub Releases when a check is due at launch, then every six hours. Both automatic checking and automatic installation are enabled by default. Before installing, VERITY verifies the release archive's SHA-256 digest and app signature, then replaces the installed app and restarts. You can change either setting or check manually in **Settings → Updates**. Automatic installation requires `VERITY.app` to be directly inside a writable `Applications` folder.
 
 ## Essential controls
 

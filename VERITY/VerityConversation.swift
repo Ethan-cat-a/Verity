@@ -213,7 +213,7 @@ enum VerityVoiceError: LocalizedError {
 }
 
 @MainActor
-final class VerityConversationModel: ObservableObject {
+final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVSpeechSynthesizerDelegate {
     @Published var messages: [VerityConversationMessage] = []
     @Published var isListening = false
     @Published var isSending = false
@@ -227,6 +227,10 @@ final class VerityConversationModel: ObservableObject {
     private let audioEngine = AVAudioEngine()
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var audioPlayer: AVAudioPlayer?
+    private var audioPlayback: (player: AVAudioPlayer, continuation: CheckedContinuation<Bool, Never>)?
+    private var speechPlayback: (utterance: AVSpeechUtterance, continuation: CheckedContinuation<Void, Never>)?
+    private var audioMeterTask: Task<Void, Never>?
+    private var mouthAnimationTask: Task<Void, Never>?
     private var speechTask: Task<Void, Never>?
     private var pendingAudioTask: Task<Data, Error>?
     private var speechGeneration = 0
@@ -237,7 +241,11 @@ final class VerityConversationModel: ObservableObject {
     private var hasHandledFinalTranscript = false
     private let nova = VerityNovaClient()
 
-    init() { refreshVoiceStatus() }
+    override init() {
+        super.init()
+        speechSynthesizer.delegate = self
+        refreshVoiceStatus()
+    }
 
     func refreshVoiceStatus() {
         do {
@@ -553,8 +561,11 @@ final class VerityConversationModel: ObservableObject {
         speechTask?.cancel()
         pendingAudioTask?.cancel()
         pendingAudioTask = nil
-        audioPlayer?.stop()
+        let previousAudioPlayer = audioPlayer
+        finishAudioPlayback(successfully: false)
+        previousAudioPlayer?.stop()
         audioPlayer = nil
+        finishSpeechPlayback()
         speechSynthesizer.stopSpeaking(at: .immediate)
         speechTask = Task { @MainActor [weak self] in
             await self?.speak(text, reaction: reaction, generation: generation)
@@ -567,6 +578,11 @@ final class VerityConversationModel: ObservableObject {
         defer {
             if generation == speechGeneration {
                 audioPlayer = nil
+                audioMeterTask?.cancel()
+                audioMeterTask = nil
+                mouthAnimationTask?.cancel()
+                mouthAnimationTask = nil
+                VerityModel.shared.setSpeechLevel(0)
                 pendingAudioTask?.cancel()
                 pendingAudioTask = nil
                 speechTask = nil
@@ -621,13 +637,7 @@ final class VerityConversationModel: ObservableObject {
                     }
 
                     let player = try AVAudioPlayer(data: audio)
-                    audioPlayer = player
-                    player.prepareToPlay()
-                    guard player.play() else { throw VerityVoiceError.invalidResponse }
-
-                    while player.isPlaying && !Task.isCancelled && generation == speechGeneration {
-                        try? await Task.sleep(nanoseconds: 45_000_000)
-                    }
+                    guard await playAudio(player) else { throw VerityVoiceError.invalidResponse }
                 }
             } else {
                 voiceStatus = "Mac voice · Fast local speech"
@@ -635,10 +645,7 @@ final class VerityConversationModel: ObservableObject {
                 utterance.voice = Self.veritySystemVoice()
                 utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.91
                 utterance.pitchMultiplier = 0.88
-                speechSynthesizer.speak(utterance)
-                while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
-                    try? await Task.sleep(nanoseconds: 80_000_000)
-                }
+                await speakLocally(utterance)
             }
         } catch {
             pendingAudioTask?.cancel()
@@ -650,10 +657,115 @@ final class VerityConversationModel: ObservableObject {
             utterance.voice = Self.veritySystemVoice()
             utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.91
             utterance.pitchMultiplier = 0.88
-            speechSynthesizer.speak(utterance)
-            while speechSynthesizer.isSpeaking && !Task.isCancelled && generation == speechGeneration {
-                try? await Task.sleep(nanoseconds: 120_000_000)
+            await speakLocally(utterance)
+        }
+    }
+
+    /// Wait for the audio engine's completion callback. Polling `isPlaying` directly
+    /// can observe its initial false value before AVAudioPlayer starts the output.
+    private func playAudio(_ player: AVAudioPlayer) async -> Bool {
+        audioPlayer = player
+        player.delegate = self
+        player.isMeteringEnabled = true
+        player.prepareToPlay()
+        return await withCheckedContinuation { continuation in
+            audioPlayback = (player, continuation)
+            guard player.play() else {
+                finishAudioPlayback(successfully: false)
+                return
             }
+            audioMeterTask?.cancel()
+            audioMeterTask = Task { @MainActor [weak self, weak player] in
+                guard let self, let player else { return }
+                while !Task.isCancelled, self.audioPlayback?.player === player {
+                    player.updateMeters()
+                    let decibels = CGFloat(player.averagePower(forChannel: 0))
+                    let level = min(max((decibels + 50) / 45, 0), 1)
+                    VerityModel.shared.setSpeechLevel(level)
+                    try? await Task.sleep(nanoseconds: 40_000_000)
+                }
+            }
+        }
+    }
+
+    private func speakLocally(_ utterance: AVSpeechUtterance) async {
+        await withCheckedContinuation { continuation in
+            speechPlayback = (utterance, continuation)
+            speechSynthesizer.speak(utterance)
+        }
+    }
+
+    private func finishAudioPlayback(successfully: Bool) {
+        guard let playback = audioPlayback else { return }
+        audioPlayback = nil
+        audioMeterTask?.cancel()
+        audioMeterTask = nil
+        VerityModel.shared.setSpeechLevel(0)
+        if audioPlayer === playback.player { audioPlayer = nil }
+        playback.continuation.resume(returning: successfully)
+    }
+
+    private func finishSpeechPlayback(for utterance: AVSpeechUtterance? = nil) {
+        guard let playback = speechPlayback,
+              utterance == nil || playback.utterance === utterance else { return }
+        speechPlayback = nil
+        mouthAnimationTask?.cancel()
+        mouthAnimationTask = nil
+        VerityModel.shared.setSpeechLevel(0)
+        playback.continuation.resume()
+    }
+
+    private func animateMouth(for utterance: AVSpeechUtterance, range: NSRange) {
+        guard speechPlayback?.utterance === utterance else { return }
+        let source = utterance.speechString as NSString
+        let safeRange = NSIntersectionRange(range, NSRange(location: 0, length: source.length))
+        guard safeRange.length > 0 else { return }
+        let spokenPart = source.substring(with: safeRange).lowercased()
+        let pulseCount = max(1, min(5, spokenPart.filter { "aeiouy".contains($0) }.count))
+
+        mouthAnimationTask?.cancel()
+        mouthAnimationTask = Task { @MainActor [weak self] in
+            for _ in 0..<pulseCount {
+                guard let self, !Task.isCancelled,
+                      self.speechPlayback?.utterance === utterance else { return }
+                VerityModel.shared.setSpeechLevel(0.78)
+                try? await Task.sleep(nanoseconds: 75_000_000)
+                guard !Task.isCancelled else { return }
+                VerityModel.shared.setSpeechLevel(0.12)
+                try? await Task.sleep(nanoseconds: 60_000_000)
+            }
+        }
+    }
+
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor [weak self] in
+            guard self?.audioPlayback?.player === player else { return }
+            self?.finishAudioPlayback(successfully: flag)
+        }
+    }
+
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        Task { @MainActor [weak self] in
+            guard self?.audioPlayback?.player === player else { return }
+            self?.finishAudioPlayback(successfully: false)
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in self?.finishSpeechPlayback(for: utterance) }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor [weak self] in self?.finishSpeechPlayback(for: utterance) }
+    }
+
+    nonisolated func speechSynthesizer(
+        _ synthesizer: AVSpeechSynthesizer,
+        willSpeakRangeOfSpeechString characterRange: NSRange,
+        utterance: AVSpeechUtterance
+    ) {
+        Task { @MainActor [weak self] in
+            self?.animateMouth(for: utterance, range: characterRange)
         }
     }
 
@@ -696,8 +808,11 @@ final class VerityConversationModel: ObservableObject {
         speechTask = nil
         pendingAudioTask?.cancel()
         pendingAudioTask = nil
-        audioPlayer?.stop()
+        let previousAudioPlayer = audioPlayer
+        finishAudioPlayback(successfully: false)
+        previousAudioPlayer?.stop()
         audioPlayer = nil
+        finishSpeechPlayback()
         speechSynthesizer.stopSpeaking(at: .immediate)
         isSpeaking = false
         VerityModel.shared.setMood(.happy)
@@ -706,6 +821,7 @@ final class VerityConversationModel: ObservableObject {
 
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
+    @ObservedObject private var characterModel = VerityModel.shared
     let onClose: () -> Void
     @State private var draft = ""
 
@@ -719,7 +835,7 @@ struct VerityConversationView: View {
                         .background(.black.opacity(0.06), in: Circle())
                 }
                 .buttonStyle(.plain)
-                VerityFace(size: 48, mood: VerityModel.shared.mood)
+                VerityFace(size: 48, mood: characterModel.mood, speechLevel: characterModel.speechLevel)
                     .shadow(color: .orange.opacity(0.16), radius: 7, y: 3)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("VERITY").font(.system(size: 15, weight: .black, design: .rounded)).tracking(1.2)

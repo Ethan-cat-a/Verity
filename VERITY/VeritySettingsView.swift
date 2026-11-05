@@ -27,7 +27,7 @@ struct VeritySettingsView: View {
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.1"
     }
 
     var body: some View {
@@ -166,6 +166,9 @@ struct VeritySettingsView: View {
             Section("Updates") {
                 Toggle("Check automatically", isOn: $automaticUpdateChecks)
                 Toggle("Download and install automatically", isOn: $automaticUpdateInstall)
+                Text("Checks GitHub when due at launch and every six hours. With both options on, VERITY verifies new releases before installing and restarting. Automatic installation needs VERITY.app in a writable Applications folder.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(updateChecker.status).font(.system(size: 12, weight: .medium))

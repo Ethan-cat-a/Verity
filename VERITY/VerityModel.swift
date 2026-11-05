@@ -33,6 +33,7 @@ final class VerityModel: ObservableObject {
     @Published var statusMessage = "I know everything worth knowing. Try me."
     @Published var isEating = false
     @Published var mood: VerityMood = .happy
+    @Published var speechLevel: CGFloat = 0
     private var hasSecurityScopedAccess = false
 
     private init() {}
@@ -87,6 +88,11 @@ final class VerityModel: ObservableObject {
 
     func setMood(_ newMood: VerityMood) {
         mood = newMood
+        if newMood != .speaking { speechLevel = 0 }
+    }
+
+    func setSpeechLevel(_ level: CGFloat) {
+        speechLevel = min(max(level, 0), 1)
     }
 
     /// Show a one-shot expression, then return to Verity's default grin.

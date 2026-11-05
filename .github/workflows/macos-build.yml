@@ -131,8 +131,12 @@ jobs:
             gh release delete-asset "$TAG" "$(basename "$ZIP")" --yes || true
             gh release upload "$TAG" "$DMG" "$ZIP"
           else
-            gh release create "$TAG" "$DMG" "$ZIP" \
-              --title "VERITY $TAG" \
-              --target "$GITHUB_SHA" \
-              --notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications."
+            RELEASE_ARGS=(--title "VERITY $TAG" --target "$GITHUB_SHA")
+            NOTES_FILE=".github/release-notes/$VERSION.md"
+            if [ -f "$NOTES_FILE" ]; then
+              RELEASE_ARGS+=(--notes-file "$NOTES_FILE")
+            else
+              RELEASE_ARGS+=(--notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications.")
+            fi
+            gh release create "$TAG" "$DMG" "$ZIP" "${RELEASE_ARGS[@]}"
           fi
