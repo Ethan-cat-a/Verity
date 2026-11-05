@@ -29,6 +29,17 @@ jobs:
             Tests/VerityRegressionTests.swift \
             -o "$RUNNER_TEMP/VERITY-RegressionTests"
           "$RUNNER_TEMP/VERITY-RegressionTests"
+          swiftc -parse-as-library \
+            VERITY/VerityResponseParser.swift \
+            VERITY/VerityDocumentAI.swift \
+            Tests/VerityFileAccessTests.swift \
+            -o "$RUNNER_TEMP/VERITY-FileAccessTests"
+          "$RUNNER_TEMP/VERITY-FileAccessTests"
+          swiftc -parse-as-library \
+            VERITY/VerityUpdateChecker.swift \
+            Tests/VerityUpdateTests.swift \
+            -o "$RUNNER_TEMP/VERITY-UpdateTests"
+          "$RUNNER_TEMP/VERITY-UpdateTests"
 
       - name: Build VERITY
         run: |

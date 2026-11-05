@@ -212,6 +212,13 @@ enum VerityVoiceError: LocalizedError {
     }
 }
 
+struct VeritySharedConversationFile: Identifiable, Sendable {
+    let id = UUID()
+    let path: String
+    let name: String
+    let excerpt: String
+}
+
 @MainActor
 final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVSpeechSynthesizerDelegate {
     @Published var messages: [VerityConversationMessage] = []
@@ -222,6 +229,11 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
     @Published var liveTranscript = ""
     @Published var errorMessage: String?
     @Published var voiceStatus = "Checking voice settings…"
+    @Published private(set) var sharedFiles: [VeritySharedConversationFile] = []
+    @Published private(set) var isLoadingFiles = false
+
+    private static let maximumSharedFiles = 5
+    private static let maximumFileCharacters = 8_000
 
     private let speechRecognizer = SFSpeechRecognizer()
     private let audioEngine = AVAudioEngine()
@@ -245,6 +257,77 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         super.init()
         speechSynthesizer.delegate = self
         refreshVoiceStatus()
+    }
+
+    func chooseFilesToShare() {
+        guard !isLoadingFiles, !isSending else { return }
+        guard sharedFiles.count < Self.maximumSharedFiles else {
+            errorMessage = "Remove a shared file before adding another. You can share up to five files."
+            return
+        }
+
+        let explanation = NSAlert()
+        explanation.messageText = "Share files with Verity?"
+        explanation.informativeText = "You choose the files. VERITY reads their text locally and sends up to the first 8,000 characters of each file to the NOVA AI service with your AI questions. They stay attached to this conversation until you remove them or quit VERITY. Earlier chat replies may remain in the conversation."
+        explanation.addButton(withTitle: "Choose Files")
+        explanation.addButton(withTitle: "Cancel")
+        guard explanation.runModal() == .alertFirstButtonReturn else { return }
+
+        let panel = NSOpenPanel()
+        panel.title = "Choose files to share with Verity"
+        panel.message = "Selected file excerpts will be sent to NOVA with your AI questions."
+        panel.prompt = "Share Selected Files"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        guard panel.runModal() == .OK else { return }
+        let existingPaths = Set(sharedFiles.map(\.path))
+        let urls = panel.urls.filter { !existingPaths.contains($0.standardizedFileURL.path) }
+        guard !urls.isEmpty else { return }
+        guard urls.count <= Self.maximumSharedFiles - sharedFiles.count else {
+            errorMessage = "Choose no more than \(Self.maximumSharedFiles - sharedFiles.count) more files."
+            return
+        }
+
+        isLoadingFiles = true
+        errorMessage = nil
+        let characterLimit = Self.maximumFileCharacters
+        Task { [weak self] in
+            let result = await Task.detached(priority: .userInitiated) { () -> ([VeritySharedConversationFile], [String]) in
+                var files: [VeritySharedConversationFile] = []
+                var failures: [String] = []
+                for url in urls {
+                    let scoped = url.startAccessingSecurityScopedResource()
+                    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                    do {
+                        let excerpt = try VerityNovaClient.conversationExcerpt(from: url, limit: characterLimit)
+                        files.append(VeritySharedConversationFile(
+                            path: url.standardizedFileURL.path,
+                            name: url.lastPathComponent,
+                            excerpt: excerpt
+                        ))
+                    } catch {
+                        failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
+                    }
+                }
+                return (files, failures)
+            }.value
+            guard let self else { return }
+            self.sharedFiles.append(contentsOf: result.0)
+            self.isLoadingFiles = false
+            if !result.1.isEmpty { self.errorMessage = result.1.joined(separator: "\n") }
+        }
+    }
+
+    func removeSharedFile(_ id: UUID) {
+        sharedFiles.removeAll { $0.id == id }
+    }
+
+    private func sharedFileContext() -> String {
+        sharedFiles.enumerated().map { index, file in
+            let name = file.name.replacingOccurrences(of: "\n", with: " ")
+            return "FILE \(index + 1): \(name)\nBEGIN FILE EXCERPT\n\(file.excerpt)\nEND FILE EXCERPT"
+        }.joined(separator: "\n\n")
     }
 
     func refreshVoiceStatus() {
@@ -272,7 +355,7 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
     }
 
     private func beginListening() async {
-        guard !isListening, !isSending else { return }
+        guard !isListening, !isSending, !isLoadingFiles else { return }
         errorMessage = nil
         liveTranscript = ""
         shouldSubmitFinalTranscript = false
@@ -417,7 +500,7 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
 
     func send(_ rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isSending else { return }
+        guard !text.isEmpty, !isSending, !isLoadingFiles else { return }
         if isSpeaking { stopSpeaking() }
         errorMessage = nil
 
@@ -457,11 +540,13 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
                 VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_200)))
             }
             let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(900))
+            let fileContext = self.sharedFileContext()
             let uncannyAside = Int.random(in: 1...24) == 1
             do {
                 let reply = try await self.nova.conversationReply(
                     history: Array(history),
                     additionalContext: savedContext,
+                    fileContext: fileContext,
                     uncannyAside: uncannyAside,
                     onTextChunk: { [weak self] chunk in
                         self?.streamingReply += chunk
@@ -859,7 +944,7 @@ struct VerityConversationView: View {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
                             Text("Ask me anything. I already know.").font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("Or drop in a document. I will try not to make a big deal of it.")
+                            Text("Use the paperclip to share files, or drop in a document.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
@@ -909,6 +994,30 @@ struct VerityConversationView: View {
                     .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
             }
 
+            if !model.sharedFiles.isEmpty || model.isLoadingFiles {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.isLoadingFiles ? "Reading selected files…" : "Shared with NOVA on AI questions · remove anytime")
+                        .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(model.sharedFiles) { file in
+                                HStack(spacing: 4) {
+                                    Text(file.name).lineLimit(1).truncationMode(.middle)
+                                    Button { model.removeSharedFile(file.id) } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Stop sharing \(file.name)")
+                                }
+                                .font(.system(size: 10))
+                                .padding(.horizontal, 7).padding(.vertical, 4)
+                                .background(.white.opacity(0.7), in: Capsule())
+                            }
+                        }
+                    }
+                }
+            }
+
             HStack(spacing: 8) {
                 Button { model.toggleListening() } label: {
                     Image(systemName: model.isListening ? "stop.fill" : "mic.fill")
@@ -917,19 +1026,26 @@ struct VerityConversationView: View {
                         .background(model.isListening ? Color.red : Color.orange, in: Circle())
                         .overlay(Circle().stroke(.white.opacity(0.5), lineWidth: 1))
                 }
-                .buttonStyle(.plain).disabled(model.isSending)
+                .buttonStyle(.plain).disabled(model.isSending || model.isLoadingFiles)
                 .help(model.isListening ? "Finish speaking" : "Talk to Verity")
+
+                Button { model.chooseFilesToShare() } label: {
+                    Image(systemName: "paperclip").font(.system(size: 15, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .disabled(model.isSending || model.isLoadingFiles || model.isListening)
+                .help("Choose files to share with Verity")
 
                 TextField("Message Verity…", text: $draft)
                     .textFieldStyle(.roundedBorder).lineLimit(1...3)
                     .onSubmit(sendDraft)
-                    .disabled(model.isSending || model.isListening)
+                    .disabled(model.isSending || model.isListening || model.isLoadingFiles)
 
                 Button(action: sendDraft) {
                     Image(systemName: "arrow.up.circle.fill").font(.system(size: 26)).foregroundStyle(.orange)
                 }
                 .buttonStyle(.plain)
-                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
+                .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending || model.isLoadingFiles)
             }
         }
         .padding(14)

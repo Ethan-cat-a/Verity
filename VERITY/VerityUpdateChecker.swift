@@ -7,7 +7,6 @@ import CryptoKit
 final class VerityUpdateChecker: ObservableObject {
     static let shared = VerityUpdateChecker()
     static let automaticChecksKey = "verity.updates.automaticChecks"
-    static let automaticInstallKey = "verity.updates.automaticInstall"
     private static let lastCheckKey = "verity.updates.lastChecked"
     private static let releaseAPI = URL(string: "https://api.github.com/repos/Ethan-cat-a/Verity/releases/latest")!
     private static let maximumInstallerSize: Int64 = 100 * 1_024 * 1_024
@@ -23,6 +22,10 @@ final class VerityUpdateChecker: ObservableObject {
 
     private var latestZipAsset: Asset?
     private var automaticTask: Task<Void, Never>?
+    private var lastPromptedVersion: String?
+    private let session: URLSession
+    private let currentVersionOverride: String?
+    private let promptHandler: ((String, Bool) -> Bool)?
 
     private struct Release: Decodable {
         let tag_name: String
@@ -38,11 +41,15 @@ final class VerityUpdateChecker: ObservableObject {
         let digest: String?
     }
 
-    private init() {
-        UserDefaults.standard.register(defaults: [
-            Self.automaticChecksKey: true,
-            Self.automaticInstallKey: true
-        ])
+    init(
+        session: URLSession = .shared,
+        currentVersion: String? = nil,
+        promptHandler: ((String, Bool) -> Bool)? = nil
+    ) {
+        self.session = session
+        self.currentVersionOverride = currentVersion
+        self.promptHandler = promptHandler
+        UserDefaults.standard.register(defaults: [Self.automaticChecksKey: true])
         lastCheckedAt = UserDefaults.standard.object(forKey: Self.lastCheckKey) as? Date
     }
 
@@ -98,7 +105,7 @@ final class VerityUpdateChecker: ObservableObject {
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("VERITY-macOS", forHTTPHeaderField: "User-Agent")
             request.timeoutInterval = 20
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 let code = (response as? HTTPURLResponse)?.statusCode ?? -1
                 throw UpdateError.http(code)
@@ -115,7 +122,7 @@ final class VerityUpdateChecker: ObservableObject {
             let version = release.tag_name.hasPrefix("v")
                 ? String(release.tag_name.dropFirst())
                 : release.tag_name
-            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.7.0"
+            let current = currentVersionOverride ?? (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.7.0")
             latestVersion = version
             releasePageURL = page
             updateAvailable = Self.isVersion(version, newerThan: current)
@@ -128,13 +135,7 @@ final class VerityUpdateChecker: ObservableObject {
             latestZipAsset = zip
 
             if updateAvailable {
-                if UserDefaults.standard.bool(forKey: Self.automaticInstallKey), let zip {
-                    status = "VERITY \(version) is available · preparing automatic update…"
-                    successful = true
-                    await downloadVerifyAndInstall(zip)
-                } else {
-                    status = "Update available · VERITY \(version)"
-                }
+                status = "Update available · VERITY \(version)"
             } else {
                 status = "You're up to date · VERITY \(current)"
             }
@@ -147,6 +148,29 @@ final class VerityUpdateChecker: ObservableObject {
             let checked = Date()
             lastCheckedAt = checked
             UserDefaults.standard.set(checked, forKey: Self.lastCheckKey)
+            if updateAvailable { promptForUpdateIfNeeded() }
+        }
+    }
+
+    private func promptForUpdateIfNeeded() {
+        guard !isInstalling, !latestVersion.isEmpty, lastPromptedVersion != latestVersion else { return }
+        lastPromptedVersion = latestVersion
+        let approved: Bool
+        if let promptHandler {
+            approved = promptHandler(latestVersion, latestZipAsset != nil)
+        } else {
+            let alert = NSAlert()
+            alert.messageText = "VERITY \(latestVersion) is available"
+            alert.informativeText = latestZipAsset == nil
+                ? "A new version is available. Open its download page?"
+                : "Install the update now? VERITY will verify the download and restart after installation."
+            alert.addButton(withTitle: latestZipAsset == nil ? "Open Download Page" : "Install Update")
+            alert.addButton(withTitle: "Later")
+            NSApp.activate(ignoringOtherApps: true)
+            approved = alert.runModal() == .alertFirstButtonReturn
+        }
+        if approved {
+            Task { await installAvailableUpdate() }
         }
     }
 
@@ -173,7 +197,7 @@ final class VerityUpdateChecker: ObservableObject {
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
             request.setValue("VERITY-macOS", forHTTPHeaderField: "User-Agent")
             request.timeoutInterval = 120
-            let (temporaryDownload, response) = try await URLSession.shared.download(for: request)
+            let (temporaryDownload, response) = try await session.download(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw UpdateError.downloadFailed((response as? HTTPURLResponse)?.statusCode ?? -1)
             }

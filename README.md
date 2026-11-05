@@ -1,4 +1,4 @@
-# VERITY 1.2.1 — the know-it-all orb
+# VERITY 1.2.2 — the know-it-all orb
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -6,7 +6,7 @@ A little Clippy energy. A much bigger ego. A slightly unsettling smile.
 
 VERITY is a tiny yellow desktop companion with a softly lit 3D orb, an original smile, and an air of complete certainty. Click it, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
 
-Version 1.2.1 refines the orb lighting, smooths its idle motion and blinks, and makes the desktop pet's breathing and eating animations gentler. Version 1.2.0 introduced the animated orb, original scripted character replies for common prompts, and an optional Fish Audio community voice.
+Version 1.2.2 asks before installing updates and lets you choose files to share with VERITY in conversation. Version 1.2.1 refined the orb's lighting and animations; 1.2.0 introduced the animated orb, original scripted character replies, and an optional Fish Audio community voice.
 
 ## Download
 
@@ -29,6 +29,7 @@ This clears the quarantine flag only for the installed VERITY app; it does not d
 - A softly lit yellow 3D smiley orb stays docked on your desktop, with animated expressions and an occasional unsettling stare.
 - Click it to open one simple conversation. Type or use the microphone.
 - Drop a supported document into the window and ask about it.
+- Use the conversation paperclip to approve up to five files for chat. VERITY reads the selected files locally and sends up to the first 8,000 characters of each to NOVA with AI questions until you remove them or quit the app. Remove and reselect a file to refresh its snapshot.
 - Document answers cite clickable PDF pages or text sections; open a citation to inspect the passage Verity used.
 - VERITY has a huge ego, a sharp tongue, and a habit of acting like the answer was obvious.
 - Original scripted replies handle common greetings and character questions without a network request.
@@ -48,7 +49,7 @@ The speed of a full AI answer still depends on the network and the NOVA service.
 
 ## Privacy
 
-Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. VERITY receives what you type, say while the microphone is active, or deliberately provide by dropping a document. Document text is extracted locally and sent for analysis only when you ask for an answer. If you enable Fish Audio or ElevenLabs, the reply text is also sent to that selected provider for speech synthesis. Voice API keys are stored in macOS Keychain. Saved memories are created only on an explicit “remember” request.
+Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. VERITY receives what you type, say while the microphone is active, or deliberately provide by choosing files or dropping a document. Document text is extracted locally and sent to NOVA when you ask for an answer. Excerpts of files shared with the paperclip are sent with subsequent AI questions until removed; earlier replies may remain in chat history. If you enable Fish Audio or ElevenLabs, the reply text is also sent to that selected provider for speech synthesis. Voice API keys are stored in macOS Keychain. Saved memories are created only on an explicit “remember” request.
 
 ## School-hours gaming guard
 
@@ -60,7 +61,7 @@ Settings opens in its own window from the menu-bar menu. The Screen awareness se
 
 ## Automatic updates
 
-VERITY checks GitHub Releases when a check is due at launch, then every six hours. Both automatic checking and automatic installation are enabled by default. Before installing, VERITY verifies the release archive's SHA-256 digest and app signature, then replaces the installed app and restarts. You can change either setting or check manually in **Settings → Updates**. Automatic installation requires `VERITY.app` to be directly inside a writable `Applications` folder.
+VERITY checks GitHub Releases when a check is due at launch, then every six hours. When an update is available, it asks whether to install it. If approved, VERITY verifies the release archive's SHA-256 digest and app signature, then replaces the installed app and restarts. You can turn automatic checks on or off or check manually in **Settings → Updates**. Installation requires `VERITY.app` to be directly inside a writable `Applications` folder.
 
 ## Essential controls
 

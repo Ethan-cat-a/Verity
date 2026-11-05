@@ -23,11 +23,10 @@ struct VeritySettingsView: View {
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
     @State private var memoryMessage = ""
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
-    @AppStorage(VerityUpdateChecker.automaticInstallKey) private var automaticUpdateInstall = true
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.1"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.2"
     }
 
     var body: some View {
@@ -165,8 +164,7 @@ struct VeritySettingsView: View {
 
             Section("Updates") {
                 Toggle("Check automatically", isOn: $automaticUpdateChecks)
-                Toggle("Download and install automatically", isOn: $automaticUpdateInstall)
-                Text("Checks GitHub when due at launch and every six hours. With both options on, VERITY verifies new releases before installing and restarting. Automatic installation needs VERITY.app in a writable Applications folder.")
+                Text("Checks GitHub when due at launch and every six hours. VERITY asks before downloading and installing an update, then verifies it and restarts. Installation needs VERITY.app in a writable Applications folder.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack {
@@ -226,11 +224,6 @@ struct VeritySettingsView: View {
         .onChange(of: automaticUpdateChecks) { enabled in
             if enabled { updateChecker.startAutomaticChecks() }
             else { updateChecker.stopAutomaticChecks() }
-        }
-        .onChange(of: automaticUpdateInstall) { enabled in
-            if enabled && updateChecker.updateAvailable {
-                Task { await updateChecker.installAvailableUpdate() }
-            }
         }
     }
 
