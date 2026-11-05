@@ -105,6 +105,11 @@ jobs:
       actions: read
       contents: write
     steps:
+      - name: Check out release notes
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
       - name: Download the built app
         uses: actions/download-artifact@v4
         with:
@@ -121,6 +126,7 @@ jobs:
           VERSION="${DMG##*/VERITY-}"
           VERSION="${VERSION%-macOS.dmg}"
           TAG="v$VERSION"
+          NOTES_FILE=".github/release-notes/$VERSION.md"
           test -n "$DMG"
           test -n "$ZIP"
 
@@ -130,9 +136,11 @@ jobs:
             gh release delete-asset "$TAG" "$(basename "$DMG")" --yes || true
             gh release delete-asset "$TAG" "$(basename "$ZIP")" --yes || true
             gh release upload "$TAG" "$DMG" "$ZIP"
+            if [ -f "$NOTES_FILE" ]; then
+              gh release edit "$TAG" --title "VERITY $TAG" --notes-file "$NOTES_FILE"
+            fi
           else
             RELEASE_ARGS=(--title "VERITY $TAG" --target "$GITHUB_SHA")
-            NOTES_FILE=".github/release-notes/$VERSION.md"
             if [ -f "$NOTES_FILE" ]; then
               RELEASE_ARGS+=(--notes-file "$NOTES_FILE")
             else
