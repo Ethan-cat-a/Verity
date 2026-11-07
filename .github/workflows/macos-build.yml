@@ -144,7 +144,11 @@ jobs:
           ZIP="$(find release-assets -name 'VERITY-*-macOS.zip' -print -quit)"
           VERSION="${DMG##*/VERITY-}"
           VERSION="${VERSION%-macOS.dmg}"
-          TAG="$GITHUB_REF_NAME"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v$VERSION"
+          fi
           NOTES_FILE=".github/release-notes/$VERSION.md"
           test -n "$DMG"
           test -n "$ZIP"
