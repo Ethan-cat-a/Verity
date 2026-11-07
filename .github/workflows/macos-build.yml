@@ -3,6 +3,7 @@ name: macOS build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -61,6 +62,13 @@ jobs:
             echo "Release build version $BUILT_VERSION does not match VERSION file $SOURCE_VERSION"
             exit 1
           }
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            test "$TAG_VERSION" = "$SOURCE_VERSION" || {
+              echo "Release tag $GITHUB_REF_NAME does not match VERSION file $SOURCE_VERSION"
+              exit 1
+            }
+          fi
 
       - name: Generate the VERITY app icon
         run: |
@@ -109,7 +117,7 @@ jobs:
           retention-days: 30
 
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -136,26 +144,35 @@ jobs:
           ZIP="$(find release-assets -name 'VERITY-*-macOS.zip' -print -quit)"
           VERSION="${DMG##*/VERITY-}"
           VERSION="${VERSION%-macOS.dmg}"
-          TAG="v$VERSION"
+          TAG="$GITHUB_REF_NAME"
           NOTES_FILE=".github/release-notes/$VERSION.md"
           test -n "$DMG"
           test -n "$ZIP"
+          test "$TAG" = "v$VERSION" || {
+            echo "Release tag $TAG does not match built version $VERSION"
+            exit 1
+          }
+
+          RELEASE_ARGS=(--title "VERITY $TAG" --target "$GITHUB_SHA")
+          if [ -f "$NOTES_FILE" ]; then
+            RELEASE_ARGS+=(--notes-file "$NOTES_FILE")
+          else
+            RELEASE_ARGS+=(--notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications.")
+          fi
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            # Explicitly remove same-named assets first. This avoids an API
-            # 422 if the release's existing assets cannot be clobbered in place.
-            gh release delete-asset "$TAG" "$(basename "$DMG")" --yes || true
-            gh release delete-asset "$TAG" "$(basename "$ZIP")" --yes || true
-            gh release upload "$TAG" "$DMG" "$ZIP"
-            if [ -f "$NOTES_FILE" ]; then
-              gh release edit "$TAG" --title "VERITY $TAG" --notes-file "$NOTES_FILE"
+            EXISTING_ASSETS="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+            UPLOAD_ARGS=()
+            for ASSET in "$DMG" "$ZIP"; do
+              if printf '%s\n' "$EXISTING_ASSETS" | grep -Fxq "$(basename "$ASSET")"; then
+                echo "Keeping existing asset $(basename "$ASSET"); it will not be replaced."
+              else
+                UPLOAD_ARGS+=("$ASSET")
+              fi
+            done
+            if [ "${#UPLOAD_ARGS[@]}" -gt 0 ]; then
+              gh release upload "$TAG" "${UPLOAD_ARGS[@]}"
             fi
           else
-            RELEASE_ARGS=(--title "VERITY $TAG" --target "$GITHUB_SHA")
-            if [ -f "$NOTES_FILE" ]; then
-              RELEASE_ARGS+=(--notes-file "$NOTES_FILE")
-            else
-              RELEASE_ARGS+=(--notes "VERITY $VERSION for macOS. Download the DMG, open it, and drag VERITY.app into Applications.")
-            fi
             gh release create "$TAG" "$DMG" "$ZIP" "${RELEASE_ARGS[@]}"
           fi

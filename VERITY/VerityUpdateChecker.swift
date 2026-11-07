@@ -305,23 +305,28 @@ final class VerityUpdateChecker: ObservableObject {
             exit 1
         fi
 
-        NEW_APP="$CURRENT_APP.verity-new"
-        BACKUP_APP="$CURRENT_APP.verity-backup"
+        NEW_APP="$CURRENT_APP.verity-new-$APP_PID"
+        BACKUP_APP="$CURRENT_APP.verity-backup-$APP_PID"
+        APP_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$STAGED_APP/Contents/Info.plist")"
+        NEW_PID=""
         recover_previous_app() {
             exit_code=$?
             if [ "$exit_code" -ne 0 ]; then
-                if [ ! -e "$CURRENT_APP" ] && [ -e "$BACKUP_APP" ]; then
+                echo "VERITY update failed; restoring the previous app."
+                if [ -n "$NEW_PID" ] && /usr/bin/pgrep -x "$APP_EXECUTABLE" | /usr/bin/grep -qx "$NEW_PID"; then
+                    /bin/kill "$NEW_PID" 2>/dev/null || true
+                fi
+                if [ -e "$BACKUP_APP" ]; then
+                    if [ -e "$CURRENT_APP" ]; then /bin/rm -rf "$CURRENT_APP" || true; fi
                     /bin/mv "$BACKUP_APP" "$CURRENT_APP" || true
                 fi
+                if [ -e "$NEW_APP" ]; then /bin/rm -rf "$NEW_APP" || true; fi
                 if [ -e "$CURRENT_APP" ]; then
                     /usr/bin/open -n "$CURRENT_APP" || true
                 fi
             fi
         }
         trap recover_previous_app EXIT
-
-        if [ -e "$NEW_APP" ]; then /bin/rm -rf "$NEW_APP"; fi
-        if [ -e "$BACKUP_APP" ]; then /bin/rm -rf "$BACKUP_APP"; fi
 
         /usr/bin/ditto "$STAGED_APP" "$NEW_APP"
         /usr/bin/codesign --verify --deep --strict "$NEW_APP"
@@ -330,9 +335,36 @@ final class VerityUpdateChecker: ObservableObject {
         /usr/bin/xattr -dr com.apple.quarantine "$NEW_APP" 2>/dev/null || true
         /bin/mv "$CURRENT_APP" "$BACKUP_APP"
         /bin/mv "$NEW_APP" "$CURRENT_APP"
-        /bin/rm -rf "$BACKUP_APP" || true
-        echo "VERITY update installed successfully."
+        VERITY_PIDS_BEFORE=" $(/usr/bin/pgrep -x "$APP_EXECUTABLE" | /usr/bin/paste -sd ' ' - || true) "
         /usr/bin/open -n "$CURRENT_APP"
+        launched=0
+        for attempt in {1..40}; do
+            NEW_PID=""
+            for candidate in $(/usr/bin/pgrep -x "$APP_EXECUTABLE" || true); do
+                case " $VERITY_PIDS_BEFORE " in
+                    *" $candidate "*) continue ;;
+                    *) NEW_PID="$candidate"; break ;;
+                esac
+            done
+            if [ -n "$NEW_PID" ] && /bin/kill -0 "$NEW_PID" 2>/dev/null; then
+                launched=1
+                break
+            fi
+            /bin/sleep 0.5
+        done
+        if [ "$launched" -ne 1 ]; then
+            echo "The updated app did not launch; rolling back."
+            exit 1
+        fi
+        /bin/sleep 3
+        if ! /bin/kill -0 "$NEW_PID" 2>/dev/null || ! /usr/bin/pgrep -x "$APP_EXECUTABLE" | /usr/bin/grep -qx "$NEW_PID"; then
+            echo "The updated app exited during startup; rolling back."
+            exit 1
+        fi
+
+        echo "VERITY update launched successfully; removing rollback copy."
+        trap - EXIT
+        /bin/rm -rf "$BACKUP_APP"
         """
         let launcher = Process()
         launcher.executableURL = URL(fileURLWithPath: "/usr/bin/nohup")

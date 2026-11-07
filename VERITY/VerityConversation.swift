@@ -213,14 +213,34 @@ enum VerityVoiceError: LocalizedError {
 }
 
 struct VeritySharedConversationFile: Identifiable, Sendable {
-    let id = UUID()
+    let id: UUID
     let path: String
     let name: String
-    let excerpt: String
+    let sources: [VerityDocumentSource]
+
+    init(id: UUID = UUID(), path: String, name: String, sources: [VerityDocumentSource]) {
+        self.id = id
+        self.path = path
+        self.name = name
+        self.sources = sources
+    }
+
+    func preview(fileNumber: Int) -> String {
+        sources.map { "[F\(fileNumber):\($0.id)] · \($0.title)\n\($0.excerpt)" }
+            .joined(separator: "\n\n")
+    }
 }
 
 @MainActor
 final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVSpeechSynthesizerDelegate {
+    private struct RankedSharedPassage {
+        let fileIndex: Int
+        let sourceIndex: Int
+        let fileName: String
+        let source: VerityDocumentSource
+        let score: Int
+    }
+
     @Published var messages: [VerityConversationMessage] = []
     @Published var isListening = false
     @Published var isSending = false
@@ -233,7 +253,8 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
     @Published private(set) var isLoadingFiles = false
 
     private static let maximumSharedFiles = 5
-    private static let maximumFileCharacters = 8_000
+    private static let maximumSharedContextCharacters = 8_000
+    private static let maximumSharedPassages = 8
 
     private let speechRecognizer = SFSpeechRecognizer()
     private let audioEngine = AVAudioEngine()
@@ -268,14 +289,14 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
 
         let explanation = NSAlert()
         explanation.messageText = "Share files with Verity?"
-        explanation.informativeText = "You choose the files. VERITY reads their text locally and sends up to the first 8,000 characters of each file to the NOVA AI service with your AI questions. They stay attached to this conversation until you remove them or quit VERITY. Earlier chat replies may remain in the conversation."
+        explanation.informativeText = "You choose the files. VERITY reads only those files locally, then searches their extracted text for passages relevant to each AI question. It sends up to 8,000 characters of matching excerpts in total to NOVA. You can preview, refresh, or remove a file anytime. Files stay attached until you remove them or quit VERITY; earlier chat replies may remain in the conversation."
         explanation.addButton(withTitle: "Choose Files")
         explanation.addButton(withTitle: "Cancel")
         guard explanation.runModal() == .alertFirstButtonReturn else { return }
 
         let panel = NSOpenPanel()
         panel.title = "Choose files to share with Verity"
-        panel.message = "Selected file excerpts will be sent to NOVA with your AI questions."
+        panel.message = "Only relevant excerpts from the files you select will be sent to NOVA with your AI questions."
         panel.prompt = "Share Selected Files"
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
@@ -291,7 +312,6 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
 
         isLoadingFiles = true
         errorMessage = nil
-        let characterLimit = Self.maximumFileCharacters
         Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) { () -> ([VeritySharedConversationFile], [String]) in
                 var files: [VeritySharedConversationFile] = []
@@ -300,11 +320,11 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
                     let scoped = url.startAccessingSecurityScopedResource()
                     defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                     do {
-                        let excerpt = try VerityNovaClient.conversationExcerpt(from: url, limit: characterLimit)
+                        let sources = try VerityNovaClient.conversationSources(from: url)
                         files.append(VeritySharedConversationFile(
                             path: url.standardizedFileURL.path,
                             name: url.lastPathComponent,
-                            excerpt: excerpt
+                            sources: sources
                         ))
                     } catch {
                         failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
@@ -323,11 +343,137 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         sharedFiles.removeAll { $0.id == id }
     }
 
-    private func sharedFileContext() -> String {
-        sharedFiles.enumerated().map { index, file in
-            let name = file.name.replacingOccurrences(of: "\n", with: " ")
-            return "FILE \(index + 1): \(name)\nBEGIN FILE EXCERPT\n\(file.excerpt)\nEND FILE EXCERPT"
+    func refreshSharedFile(_ id: UUID) {
+        guard !isLoadingFiles, !isSending, !isListening,
+              let index = sharedFiles.firstIndex(where: { $0.id == id }) else { return }
+        let selected = sharedFiles[index]
+        isLoadingFiles = true
+        errorMessage = nil
+        Task { [weak self] in
+            let result = await Task.detached(priority: .userInitiated) { () -> Result<[VerityDocumentSource], Error> in
+                let url = URL(fileURLWithPath: selected.path)
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                return Result { try VerityNovaClient.conversationSources(from: url) }
+            }.value
+            guard let self else { return }
+            self.isLoadingFiles = false
+            switch result {
+            case .success(let sources):
+                guard let currentIndex = self.sharedFiles.firstIndex(where: { $0.id == id }) else { return }
+                self.sharedFiles[currentIndex] = VeritySharedConversationFile(
+                    id: selected.id,
+                    path: selected.path,
+                    name: selected.name,
+                    sources: sources
+                )
+            case .failure(let error):
+                self.errorMessage = "Couldn't refresh \(selected.name): \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func sharedFileContext(for query: String) -> String {
+        let terms = Set(Self.searchTokens(query))
+        guard !sharedFiles.isEmpty else { return "" }
+        let lowerQuery = query.lowercased()
+        let broadRequest = [
+            "summarize", "summary", "overview", "main points", "key points", "outline",
+            "analyze", "analysis", "explain this", "what is in", "what's in", "what does this"
+        ].contains { lowerQuery.contains($0) }
+
+        var passages: [RankedSharedPassage] = []
+        for (fileIndex, file) in sharedFiles.enumerated() {
+            let fileTerms = Set(Self.searchTokens(file.name))
+            for (sourceIndex, source) in file.sources.enumerated() {
+                let sourceTerms = Set(Self.searchTokens(source.excerpt))
+                let overlap = terms.intersection(sourceTerms).count
+                let filenameOverlap = terms.intersection(fileTerms).count
+                let titleOverlap = terms.intersection(Set(Self.searchTokens(source.title))).count
+                let score = overlap * 10 + filenameOverlap * 5 + titleOverlap * 3
+                if score > 0 {
+                    passages.append(RankedSharedPassage(
+                        fileIndex: fileIndex + 1,
+                        sourceIndex: sourceIndex,
+                        fileName: file.name,
+                        source: source,
+                        score: score
+                    ))
+                }
+            }
+        }
+
+        if passages.isEmpty && broadRequest {
+            for (fileIndex, file) in sharedFiles.enumerated() {
+                guard let first = file.sources.first else { continue }
+                passages.append(RankedSharedPassage(
+                    fileIndex: fileIndex + 1, sourceIndex: 0, fileName: file.name,
+                    source: first, score: 0
+                ))
+            }
+            for (fileIndex, file) in sharedFiles.enumerated() where file.sources.count > 1 {
+                let lastIndex = file.sources.count - 1
+                passages.append(RankedSharedPassage(
+                    fileIndex: fileIndex + 1, sourceIndex: lastIndex, fileName: file.name,
+                    source: file.sources[lastIndex], score: 0
+                ))
+            }
+        }
+
+        if passages.isEmpty {
+            return "The user has approved files attached, but local search found no matching passages for this question. Do not guess their contents; ask what topic or wording to search for."
+        }
+
+        passages.sort {
+            if $0.score != $1.score { return $0.score > $1.score }
+            if $0.fileIndex != $1.fileIndex { return $0.fileIndex < $1.fileIndex }
+            return $0.sourceIndex < $1.sourceIndex
+        }
+
+        var selected: [RankedSharedPassage] = []
+        var perFileCounts: [Int: Int] = [:]
+        var characterCount = 0
+        for passage in passages {
+            guard selected.count < Self.maximumSharedPassages,
+                  (perFileCounts[passage.fileIndex] ?? 0) < 2 else { continue }
+            let remaining = Self.maximumSharedContextCharacters - characterCount
+            guard remaining > 0 else { break }
+            let excerpt = String(passage.source.excerpt.prefix(remaining))
+            guard !excerpt.isEmpty else { continue }
+            selected.append(RankedSharedPassage(
+                fileIndex: passage.fileIndex,
+                sourceIndex: passage.sourceIndex,
+                fileName: passage.fileName,
+                source: VerityDocumentSource(
+                    id: passage.source.id,
+                    title: passage.source.title,
+                    excerpt: excerpt
+                ),
+                score: passage.score
+            ))
+            perFileCounts[passage.fileIndex, default: 0] += 1
+            characterCount += excerpt.count
+        }
+
+        return selected.map { passage in
+            let safeName = passage.fileName
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
+            return "FILE [F\(passage.fileIndex)]: \(safeName)\nSOURCE [F\(passage.fileIndex):\(passage.source.id)] · \(passage.source.title)\nBEGIN EXCERPT\n\(passage.source.excerpt)\nEND EXCERPT"
         }.joined(separator: "\n\n")
+    }
+
+    private static func searchTokens(_ text: String) -> [String] {
+        let ignored: Set<String> = [
+            "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "could", "did", "do", "does",
+            "for", "from", "had", "has", "have", "how", "i", "in", "is", "it", "me", "my", "of", "on",
+            "or", "our", "please", "should", "that", "the", "their", "them", "there", "this", "to", "us",
+            "was", "what", "when", "where", "which", "who", "will", "with", "would", "you", "your"
+        ]
+        return text.lowercased()
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .filter { $0.count > 1 && !ignored.contains($0) }
     }
 
     func refreshVoiceStatus() {
@@ -540,7 +686,7 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
                 VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_200)))
             }
             let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(900))
-            let fileContext = self.sharedFileContext()
+            let fileContext = self.sharedFileContext(for: text)
             let uncannyAside = Int.random(in: 1...24) == 1
             do {
                 let reply = try await self.nova.conversationReply(
@@ -909,6 +1055,7 @@ struct VerityConversationView: View {
     @ObservedObject private var characterModel = VerityModel.shared
     let onClose: () -> Void
     @State private var draft = ""
+    @State private var previewedFile: VeritySharedConversationFile?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -996,13 +1143,25 @@ struct VerityConversationView: View {
 
             if !model.sharedFiles.isEmpty || model.isLoadingFiles {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(model.isLoadingFiles ? "Reading selected files…" : "Shared with NOVA on AI questions · remove anytime")
+                    Text(model.isLoadingFiles ? "Reading selected files…" : "Local search · relevant excerpts sent · refresh or remove anytime")
                         .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(model.sharedFiles) { file in
+                                let fileNumber = (model.sharedFiles.firstIndex(where: { $0.id == file.id }) ?? 0) + 1
                                 HStack(spacing: 4) {
-                                    Text(file.name).lineLimit(1).truncationMode(.middle)
+                                    Text("F\(fileNumber) · \(file.name)").lineLimit(1).truncationMode(.middle)
+                                    Button { previewedFile = file } label: {
+                                        Image(systemName: "eye")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Preview extracted text from \(file.name)")
+                                    Button { model.refreshSharedFile(file.id) } label: {
+                                        Image(systemName: "arrow.clockwise")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(model.isLoadingFiles || model.isSending || model.isListening)
+                                    .help("Refresh the approved copy of \(file.name)")
                                     Button { model.removeSharedFile(file.id) } label: {
                                         Image(systemName: "xmark.circle.fill")
                                     }
@@ -1012,6 +1171,21 @@ struct VerityConversationView: View {
                                 .font(.system(size: 10))
                                 .padding(.horizontal, 7).padding(.vertical, 4)
                                 .background(.white.opacity(0.7), in: Capsule())
+                                .popover(item: $previewedFile, arrowEdge: .top) { preview in
+                                    VStack(alignment: .leading, spacing: 7) {
+                                        Text(preview.name).font(.system(size: 12, weight: .bold)).lineLimit(1)
+                                        Text("Local extracted text · source markers match chat citations")
+                                            .font(.system(size: 10)).foregroundStyle(.secondary)
+                                        ScrollView {
+                                            Text(preview.preview(fileNumber: fileNumber))
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .textSelection(.enabled)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                    }
+                                    .padding(12)
+                                    .frame(width: 300, height: 280)
+                                }
                             }
                         }
                     }
