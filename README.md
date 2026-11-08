@@ -1,4 +1,4 @@
-# VERITY 1.2.3 — the know-it-all orb
+# VERITY 1.3.0 — the know-it-all orb
 
 **Meet the smartest thing on your desktop. It knows it.**
 
@@ -6,7 +6,7 @@ A little Clippy energy. A much bigger ego. A slightly unsettling smile.
 
 VERITY is a tiny yellow desktop companion with a softly lit 3D orb, an original smile, and an air of complete certainty. Click it, ask a question, and it gets straight to the answer. It is quick, smug, funny, useful, and occasionally a little too still.
 
-Version 1.2.3 adds safer update rollback and locally searched file references. Version 1.2.2 asks before installing updates and lets you choose files to share with VERITY in conversation. Version 1.2.1 refined the orb's lighting and animations; 1.2.0 introduced the animated orb, original scripted character replies, and an optional Fish Audio community voice.
+Version 1.3.0 adds optional folder awareness for supported documents while keeping indexing on-device and sharing only question-matched excerpts. Version 1.2.3 added safer update rollback and locally searched file references. Version 1.2.2 asks before installing updates and lets you choose files to share with VERITY in conversation. Version 1.2.1 refined the orb's lighting and animations; 1.2.0 introduced the animated orb, original scripted character replies, and an optional Fish Audio community voice.
 
 ## Download
 
