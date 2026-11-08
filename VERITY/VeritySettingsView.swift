@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AppKit
 
 /// The small set of controls that matter for the VERITY companion.
 struct VeritySettingsView: View {
@@ -22,6 +23,8 @@ struct VeritySettingsView: View {
     @AppStorage(VerityVoiceService.useFishAudioPreferenceKey) private var useFishAudioVoice = false
     @AppStorage(VerityMemoryStore.enabledKey) private var memoryEnabled = true
     @State private var memoryMessage = ""
+    @ObservedObject private var folderLibrary = VerityFolderLibrary.shared
+    @State private var folderLibraryMessage = ""
     @AppStorage(VerityUpdateChecker.automaticChecksKey) private var automaticUpdateChecks = true
     @ObservedObject private var updateChecker = VerityUpdateChecker.shared
 
@@ -152,6 +155,45 @@ struct VeritySettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            Section("File awareness") {
+                Toggle("Let VERITY search a folder I choose", isOn: Binding(
+                    get: { folderLibrary.isEnabled },
+                    set: { enabled in
+                        if enabled {
+                            requestFolderAccess()
+                        } else {
+                            folderLibrary.disable()
+                            folderLibraryMessage = "Folder search is off. Its saved folder access and local index were removed."
+                        }
+                    }
+                ))
+                Text("Choose your home folder for broad coverage or a smaller folder. VERITY indexes supported PDFs, Word documents, text and code locally, skips hidden folders, Library and app packages, and keeps the text index in memory. The index is capped at 2,000 documents or 12 million characters. When you ask a question, up to 8,000 characters of relevant excerpts may be sent to NOVA; original files are not uploaded. Avoid folders with secrets. Turn this off any time to remove the saved folder access and index; earlier replies in an open chat remain.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                if folderLibrary.isEnabled {
+                    Label(folderLibrary.folderName ?? "Selected folder", systemImage: "folder.fill")
+                        .font(.callout)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    HStack {
+                        Button("Choose another folder") { requestFolderAccess() }
+                            .disabled(folderLibrary.isIndexing)
+                        Button(folderLibrary.isIndexing ? "Indexing…" : "Refresh index") {
+                            Task { await folderLibrary.refreshIndex() }
+                        }
+                        .disabled(folderLibrary.isIndexing)
+                    }
+                    Text(folderLibrary.status)
+                        .font(.caption).foregroundStyle(.secondary)
+                    if let error = folderLibrary.errorMessage {
+                        Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                }
+                if !folderLibraryMessage.isEmpty {
+                    Text(folderLibraryMessage).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
             Section("Connection") {
                 HStack(spacing: 8) {
                     Circle().fill(isConnected ? Color.green : Color.orange).frame(width: 8, height: 8)
@@ -235,6 +277,37 @@ struct VeritySettingsView: View {
             hasSavedElevenLabsKey = false
             hasSavedFishAudioKey = false
             voiceMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func requestFolderAccess() {
+        if !folderLibrary.isEnabled {
+            let explanation = NSAlert()
+            explanation.messageText = "Let VERITY search a folder?"
+            explanation.informativeText = "VERITY will scan supported PDFs, Word documents, text and code inside the folder you choose, on this Mac. It does not upload whole files. For each question, up to 8,000 characters of locally matched excerpts may be sent to NOVA. Hidden folders, Library and app/package contents are skipped. The local index is capped at 2,000 documents or 12 million characters. Choose a smaller folder if your home folder contains secrets. Turning this off removes VERITY's saved folder access and local index; earlier replies in an open chat remain."
+            explanation.addButton(withTitle: "Choose Folder")
+            explanation.addButton(withTitle: "Cancel")
+            guard explanation.runModal() == .alertFirstButtonReturn else { return }
+        }
+
+        let panel = NSOpenPanel()
+        panel.title = "Choose a folder for VERITY"
+        panel.message = "Choose your home folder for broad coverage, or select a narrower folder."
+        panel.prompt = "Allow Folder Search"
+        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.treatsFilePackagesAsDirectories = false
+        guard panel.runModal() == .OK, let folderURL = panel.url else { return }
+
+        do {
+            try folderLibrary.enable(folderURL: folderURL)
+            folderLibraryMessage = ""
+            Task { await folderLibrary.refreshIndex() }
+        } catch {
+            folderLibraryMessage = "Couldn't enable folder search: \(error.localizedDescription)"
         }
     }
 

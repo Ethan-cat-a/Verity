@@ -30,6 +30,7 @@ This clears the quarantine flag only for the installed VERITY app; it does not d
 - Click it to open one simple conversation. Type or use the microphone.
 - Drop a supported document into the window and ask about it.
 - Use the conversation paperclip to approve up to five files for chat. VERITY reads only those files locally, searches their extracted text for passages related to each question, and sends up to 8,000 relevant characters total to NOVA. Answers cite passages with markers you can inspect in the file preview. Preview, refresh, or remove each approved file in the chat; file text stays in memory until you remove it or quit the app.
+- Optionally enable **Settings → File awareness** and choose a folder, including your home folder. VERITY locally indexes supported PDFs, Word documents, text, and code under it. Hidden folders, Library, and app packages are skipped; the index is capped at 2,000 documents or 12 million characters. Only question-matched excerpts (up to 8,000 characters) are sent to NOVA. Turning the option off removes the saved folder permission and index; earlier replies in an open chat remain.
 - Document answers cite clickable PDF pages or text sections; open a citation to inspect the passage Verity used.
 - VERITY has a huge ego, a sharp tongue, and a habit of acting like the answer was obvious.
 - Original scripted replies handle common greetings and character questions without a network request.
@@ -49,7 +50,7 @@ The speed of a full AI answer still depends on the network and the NOVA service.
 
 ## Privacy
 
-Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. VERITY receives what you type, say while the microphone is active, or deliberately provide by choosing files or dropping a document. Document text is extracted locally and sent to NOVA when you ask for an answer. Paperclip files are searched locally; only relevant excerpts, up to 8,000 characters total, are sent with each AI question. Earlier replies may remain in chat history. If you enable Fish Audio or ElevenLabs, the reply text is also sent to that selected provider for speech synthesis. Voice API keys are stored in macOS Keychain. Saved memories are created only on an explicit “remember” request.
+Screen awareness is off by default. When you explicitly enable it, VERITY checks only the frontmost app window about every six seconds. It uses on-device text recognition and simple keyword rules; screenshots are neither uploaded nor saved. Obvious adult keywords in visible text on supported browsers can trigger a brief blur and, when enabled, a Command-W tab close. The separate school-hours gaming guard is also opt-in. This is a best-effort text check, not reliable image moderation: it can miss image-only content or misread context. Closing a tab may discard unsaved form contents. VERITY receives what you type, say while the microphone is active, or deliberately provide by choosing files or dropping a document. Document text is extracted locally and sent to NOVA when you ask for an answer. Paperclip files and the optional approved folder are searched locally; only relevant excerpts, up to 8,000 characters total, are sent with each AI question. Folder indexing is in memory and can be removed in Settings; earlier replies may remain in chat history. If you enable Fish Audio or ElevenLabs, the reply text is also sent to that selected provider for speech synthesis. Voice API keys are stored in macOS Keychain. Saved memories are created only on an explicit “remember” request.
 
 ## School-hours gaming guard
 
@@ -65,7 +66,7 @@ VERITY checks GitHub Releases when a check is due at launch, then every six hour
 
 ## Essential controls
 
-The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings include screen awareness, the blur/close behavior, and the optional weekday school-hours gaming guard, alongside the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
+The menu bar contains **Ask Verity**, show/hide desktop ball, Settings, update checking, and Quit. Settings include optional folder search, screen awareness, the blur/close behavior, and the weekday school-hours gaming guard, alongside the occasional unsettling stare, voice choice, explicit memory, connection status, and updates.
 
 ## Build from source
 

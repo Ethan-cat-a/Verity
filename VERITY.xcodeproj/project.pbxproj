@@ -24,6 +24,7 @@
 		A10000000000000000000012 /* VerityScreenSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* VerityScreenSignals.swift */; };
 		A10000000000000000000013 /* VerityScreenWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* VerityScreenWatcher.swift */; };
 		A10000000000000000000014 /* VerityScriptedReplies.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* VerityScriptedReplies.swift */; };
+		A10000000000000000000015 /* VerityFolderLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024 /* VerityFolderLibrary.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		B10000000000000000000021 /* VerityScreenSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenSignals.swift; sourceTree = "<group>"; };
 		B10000000000000000000022 /* VerityScreenWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScreenWatcher.swift; sourceTree = "<group>"; };
 		B10000000000000000000023 /* VerityScriptedReplies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityScriptedReplies.swift; sourceTree = "<group>"; };
+		B10000000000000000000024 /* VerityFolderLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityFolderLibrary.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +92,7 @@
 				B10000000000000000000021 /* VerityScreenSignals.swift */,
 				B10000000000000000000022 /* VerityScreenWatcher.swift */,
 				B10000000000000000000023 /* VerityScriptedReplies.swift */,
+				B10000000000000000000024 /* VerityFolderLibrary.swift */,
 				B10000000000000000000007 /* Info.plist */,
 			);
 			path = VERITY;
@@ -179,6 +182,7 @@
 				A10000000000000000000012 /* VerityScreenSignals.swift in Sources */,
 				A10000000000000000000013 /* VerityScreenWatcher.swift in Sources */,
 				A10000000000000000000014 /* VerityScriptedReplies.swift in Sources */,
+				A10000000000000000000015 /* VerityFolderLibrary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

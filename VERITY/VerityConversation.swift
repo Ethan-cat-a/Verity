@@ -373,9 +373,14 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         }
     }
 
-    private func sharedFileContext(for query: String) -> String {
+    private func sharedFileContext(
+        for query: String,
+        additionalFiles: [VeritySharedConversationFile] = [],
+        folderNotice: String? = nil
+    ) -> String {
         let terms = Set(Self.searchTokens(query))
-        guard !sharedFiles.isEmpty else { return "" }
+        let files = sharedFiles + additionalFiles
+        guard !files.isEmpty else { return folderNotice ?? "" }
         let lowerQuery = query.lowercased()
         let broadRequest = [
             "summarize", "summary", "overview", "main points", "key points", "outline",
@@ -383,7 +388,7 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         ].contains { lowerQuery.contains($0) }
 
         var passages: [RankedSharedPassage] = []
-        for (fileIndex, file) in sharedFiles.enumerated() {
+        for (fileIndex, file) in files.enumerated() {
             let fileTerms = Set(Self.searchTokens(file.name))
             for (sourceIndex, source) in file.sources.enumerated() {
                 let sourceTerms = Set(Self.searchTokens(source.excerpt))
@@ -404,14 +409,14 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         }
 
         if passages.isEmpty && broadRequest {
-            for (fileIndex, file) in sharedFiles.enumerated() {
+            for (fileIndex, file) in files.enumerated() {
                 guard let first = file.sources.first else { continue }
                 passages.append(RankedSharedPassage(
                     fileIndex: fileIndex + 1, sourceIndex: 0, fileName: file.name,
                     source: first, score: 0
                 ))
             }
-            for (fileIndex, file) in sharedFiles.enumerated() where file.sources.count > 1 {
+            for (fileIndex, file) in files.enumerated() where file.sources.count > 1 {
                 let lastIndex = file.sources.count - 1
                 passages.append(RankedSharedPassage(
                     fileIndex: fileIndex + 1, sourceIndex: lastIndex, fileName: file.name,
@@ -421,7 +426,8 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
         }
 
         if passages.isEmpty {
-            return "The user has approved files attached, but local search found no matching passages for this question. Do not guess their contents; ask what topic or wording to search for."
+            let noMatches = "The user has approved file sources, but local search found no matching passages for this question. Do not guess their contents; ask what topic or wording to search for."
+            return [folderNotice, noMatches].compactMap { $0 }.joined(separator: "\n\n")
         }
 
         passages.sort {
@@ -455,12 +461,13 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
             characterCount += excerpt.count
         }
 
-        return selected.map { passage in
+        let excerpts = selected.map { passage in
             let safeName = passage.fileName
                 .replacingOccurrences(of: "\n", with: " ")
                 .replacingOccurrences(of: "\r", with: " ")
             return "FILE [F\(passage.fileIndex)]: \(safeName)\nSOURCE [F\(passage.fileIndex):\(passage.source.id)] · \(passage.source.title)\nBEGIN EXCERPT\n\(passage.source.excerpt)\nEND EXCERPT"
         }.joined(separator: "\n\n")
+        return [folderNotice, excerpts].compactMap { $0 }.joined(separator: "\n\n")
     }
 
     private static func searchTokens(_ text: String) -> [String] {
@@ -686,7 +693,18 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
                 VerityChatTurn(role: $0.isUser ? "user" : "assistant", content: String($0.text.prefix(1_200)))
             }
             let savedContext = String(VerityMemoryStore.shared.context(for: text).prefix(900))
-            let fileContext = self.sharedFileContext(for: text)
+            let folderLibrary = VerityFolderLibrary.shared
+            await folderLibrary.ensureIndexIsFresh()
+            let folderFiles = folderLibrary.isEnabled ? folderLibrary.indexedFiles : []
+            var folderNotice: String?
+            if folderLibrary.isEnabled && folderFiles.isEmpty {
+                if let error = folderLibrary.errorMessage {
+                    folderNotice = "Folder search is enabled, but the selected folder could not be indexed: \(error)"
+                } else {
+                    folderNotice = "Folder search is enabled, but no supported readable documents were indexed."
+                }
+            }
+            let fileContext = self.sharedFileContext(for: text, additionalFiles: folderFiles, folderNotice: folderNotice)
             let uncannyAside = Int.random(in: 1...24) == 1
             do {
                 let reply = try await self.nova.conversationReply(
@@ -1053,6 +1071,7 @@ final class VerityConversationModel: NSObject, ObservableObject, AVAudioPlayerDe
 struct VerityConversationView: View {
     @ObservedObject var model: VerityConversationModel
     @ObservedObject private var characterModel = VerityModel.shared
+    @ObservedObject private var folderLibrary = VerityFolderLibrary.shared
     let onClose: () -> Void
     @State private var draft = ""
     @State private var previewedFile: VeritySharedConversationFile?
@@ -1091,7 +1110,7 @@ struct VerityConversationView: View {
                     if model.messages.isEmpty {
                         VStack(alignment: .leading, spacing: 7) {
                             Text("Ask me anything. I already know.").font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("Use the paperclip to share files, or drop in a document.")
+                            Text("Use the paperclip to share files, drop in a document, or enable folder search in Settings.")
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
                         }
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
@@ -1141,10 +1160,23 @@ struct VerityConversationView: View {
                     .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
             }
 
-            if !model.sharedFiles.isEmpty || model.isLoadingFiles {
+            if !model.sharedFiles.isEmpty || model.isLoadingFiles || folderLibrary.isEnabled {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(model.isLoadingFiles ? "Reading selected files…" : "Local search · relevant excerpts sent · refresh or remove anytime")
-                        .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    if !model.sharedFiles.isEmpty || model.isLoadingFiles {
+                        Text(model.isLoadingFiles ? "Reading selected files…" : "Local search · relevant excerpts sent · refresh or remove anytime")
+                            .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    }
+                    if folderLibrary.isEnabled {
+                        Label(
+                            folderLibrary.isIndexing
+                                ? "Searching the approved folder locally…"
+                                : "Folder search · \(folderLibrary.status)",
+                            systemImage: "folder"
+                        )
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    }
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(model.sharedFiles) { file in
